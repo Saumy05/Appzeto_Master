@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import PartnerSidebar from './PartnerSidebar';
 import { hotelService } from '../../../services/apiService';
 import walletService from '../../../services/walletService';
+import { DEFAULT_BRAND_LOGO } from '@/shared/constants/brandLogo';
 
 const PartnerHeader = ({ title, subtitle }) => {
     const navigate = useNavigate();
@@ -50,11 +51,8 @@ const PartnerHeader = ({ title, subtitle }) => {
                 </button>
 
                 <div className="flex flex-col items-start pt-1 ml-4">
-                    <div className="font-black tracking-tight flex items-center text-lg leading-none">
-                        <span className="text-[#0a4d2b]">Dima</span>
-                        <span className="text-amber-600 ml-1">Hasao</span>
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">
+                    <img src={DEFAULT_BRAND_LOGO} alt="Appzeto" className="h-7 w-auto max-w-[100px] object-contain" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-0.5">
                         Partner
                     </span>
                 </div>

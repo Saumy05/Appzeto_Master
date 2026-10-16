@@ -72,16 +72,18 @@ const AdminLayout = () => {
             >
                 <div className="flex h-full flex-col">
                     <div className="shrink-0 px-3 py-3 border-b border-neutral-800/60 bg-neutral-900">
-                        <div className="relative flex items-center mb-3 min-h-[80px]">
-                            <img
-                                src={DEFAULT_BRAND_LOGO}
-                                alt="Dima Hasao"
-                                className={isCollapsed ? 'h-14 w-14 object-contain' : 'h-20 w-20 object-contain'}
-                            />
+                        <div className="relative flex items-center mb-3 min-h-[60px]">
+                            <div className="rounded-lg bg-white p-1.5 flex items-center justify-center shadow-sm">
+                                <img
+                                    src={DEFAULT_BRAND_LOGO}
+                                    alt="Appzeto"
+                                    className={isCollapsed ? 'h-8 w-auto object-contain' : 'h-9 w-auto max-w-[130px] object-contain'}
+                                />
+                            </div>
                             {!isCollapsed && (
                                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                                     <h3 className="text-[15px] font-extrabold leading-tight text-white tracking-tight">
-                                        Dima Hasao
+                                        Appzeto
                                     </h3>
                                     <div className="mt-1 flex items-center gap-1.5">
                                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />

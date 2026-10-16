@@ -187,21 +187,21 @@ export default function AdminForgotPassword() {
   return (
     <AdminAuthShell>
       <div className="flex items-center justify-center gap-2.5 md:justify-start">
-        <KeyRound size={15} className="text-[#caa83e]" />
-        <span className="dh-cinzel text-[11px] font-bold uppercase tracking-[0.22em] text-[#caa83e]">
+        <KeyRound size={16} className="text-teal-600" />
+        <span className="dh-montserrat text-[11px] font-bold uppercase tracking-[0.2em] text-teal-700">
           Step {step} of 3
         </span>
       </div>
 
-      <h2 className="dh-montserrat mt-3 text-center text-2xl font-black tracking-wide text-[#f4efe2] md:text-left">
+      <h2 className="dh-montserrat mt-3 text-center text-2xl font-black tracking-tight text-slate-900 md:text-left">
         {heading}
       </h2>
-      <p className="mt-1.5 break-words text-center text-[13px] text-[#9fb3a4] md:text-left">
+      <p className="mt-1.5 break-words text-center text-[13px] text-slate-500 md:text-left">
         {subheading}
       </p>
 
       {error && (
-        <p className="mt-5 rounded-xl border border-red-400/40 bg-red-500/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-red-200">
+        <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] leading-relaxed text-red-600">
           {error}
         </p>
       )}
@@ -213,7 +213,7 @@ export default function AdminForgotPassword() {
               Email
             </label>
             <div className={authFieldClass(false)}>
-              <span className="grid w-11 shrink-0 place-items-center text-[#caa83e]">
+              <span className="grid w-11 shrink-0 place-items-center text-teal-600">
                 <Mail size={16} />
               </span>
               <input
@@ -223,7 +223,7 @@ export default function AdminForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                placeholder="admin@dimahasao.in"
+                placeholder="admin@appzeto.com"
                 className={`${authInputClass} pr-3`}
               />
             </div>

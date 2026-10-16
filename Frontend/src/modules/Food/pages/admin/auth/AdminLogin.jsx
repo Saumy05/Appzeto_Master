@@ -79,16 +79,16 @@ export default function AdminLogin() {
   return (
     <AdminAuthShell>
       <div className="flex items-center justify-center gap-2.5 md:justify-start">
-        <ShieldCheck size={15} className="text-[#caa83e]" />
-        <span className="dh-cinzel text-[11px] font-bold uppercase tracking-[0.22em] text-[#caa83e]">
+        <ShieldCheck size={16} className="text-teal-600" />
+        <span className="dh-montserrat text-[11px] font-bold uppercase tracking-[0.2em] text-teal-700">
           Administrator
         </span>
       </div>
 
-      <h2 className="dh-montserrat mt-3 text-center text-2xl font-black tracking-wide text-[#f4efe2] md:text-left">
+      <h2 className="dh-montserrat mt-3 text-center text-2xl font-black tracking-tight text-slate-900 md:text-left">
         Sign in
       </h2>
-      <p className="mt-1.5 text-center text-[13px] text-[#9fb3a4] md:text-left">
+      <p className="mt-1.5 text-center text-[13px] text-slate-500 md:text-left">
         Accounts are issued by a platform superadmin.
       </p>
 
@@ -98,7 +98,7 @@ export default function AdminLogin() {
             Email
           </label>
           <div className={authFieldClass(errors.email)}>
-            <span className="grid w-11 shrink-0 place-items-center text-[#caa83e]">
+            <span className="grid w-11 shrink-0 place-items-center text-teal-600">
               <Mail size={16} />
             </span>
             <input
@@ -110,11 +110,11 @@ export default function AdminLogin() {
                 setEmail(e.target.value);
                 if (errors.email) setErrors((c) => ({ ...c, email: undefined }));
               }}
-              placeholder="admin@dimahasao.in"
+              placeholder="admin@appzeto.com"
               className={`${authInputClass} pr-3`}
             />
           </div>
-          {errors.email && <p className="mt-1.5 text-[11px] text-red-300">{errors.email}</p>}
+          {errors.email && <p className="mt-1.5 text-[11px] text-red-500">{errors.email}</p>}
         </div>
 
         <div>
@@ -122,7 +122,7 @@ export default function AdminLogin() {
             Password
           </label>
           <div className={authFieldClass(errors.password)}>
-            <span className="grid w-11 shrink-0 place-items-center text-[#caa83e]">
+            <span className="grid w-11 shrink-0 place-items-center text-teal-600">
               <Lock size={16} />
             </span>
             <input
@@ -141,12 +141,12 @@ export default function AdminLogin() {
               type="button"
               onClick={() => setShowPassword((current) => !current)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="grid w-11 shrink-0 place-items-center text-[#5d7264] transition-colors hover:text-[#caa83e]"
+              className="grid w-11 shrink-0 place-items-center text-slate-400 transition-colors hover:text-teal-600"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && <p className="mt-1.5 text-[11px] text-red-300">{errors.password}</p>}
+          {errors.password && <p className="mt-1.5 text-[11px] text-red-500">{errors.password}</p>}
         </div>
 
         <div className="flex justify-end">
@@ -155,7 +155,7 @@ export default function AdminLogin() {
           <button
             type="button"
             onClick={() => navigate("/admin/forgot-password")}
-            className="text-[12px] font-semibold text-[#caa83e] transition-colors hover:text-[#e8c558]"
+            className="text-[12px] font-semibold text-teal-600 transition-colors hover:text-teal-700"
           >
             Forgot password?
           </button>
@@ -166,7 +166,7 @@ export default function AdminLogin() {
         </button>
       </form>
 
-      <p className="mt-7 text-center text-[11px] leading-relaxed text-[#5d7264] md:text-left">
+      <p className="mt-7 text-center text-[11px] leading-relaxed text-slate-400 md:text-left">
         Authorised access only. Every action in this console is recorded against
         your account.
       </p>

@@ -1,5 +1,5 @@
 /**
- * The Dima Hasao Tourism marks.
+ * The Appzeto Tourism marks.
  *
  * One crest per audience: the same circular Dimasa-weave border, with a
  * different centre for whoever is looking at it. They live in /public and are
@@ -18,27 +18,19 @@
  * original next to it; the full-size file stays in the same folder.
  */
 
-/** Consumer app — the Juthai gate and dancers. */
-export const CONSUMER_BRAND_LOGO = "/assets/logos/user-384.png"
+/** Consumer app mark */
+export const CONSUMER_BRAND_LOGO = "/assets/logos/appzeto-logo.png"
 
-/** Restaurant partner panel — the stay-and-eat mark. */
-export const RESTAURANT_BRAND_LOGO = "/assets/logos/restaurant-384.png"
+/** Restaurant partner panel mark */
+export const RESTAURANT_BRAND_LOGO = "/assets/logos/appzeto-logo.png"
 
-/** Hotel partner panel — the operator mark. */
-export const HOTEL_BRAND_LOGO = "/assets/logos/hotel-384.png"
+/** Hotel partner panel mark */
+export const HOTEL_BRAND_LOGO = "/assets/logos/appzeto-logo.png"
 
-/**
- * Taxi drivers and food delivery partners — the on-the-road mark.
- *
- * The art for this one has not landed yet: taxilogo.png and deliverylogo.png
- * in that folder are both byte-identical copies of the hotel mark. Pointing at
- * a name that does not exist means these screens fall back to the district
- * crest rather than showing a hotel logo to a driver. Save the vehicles
- * artwork as driver-384.png and it appears with no code change.
- */
-export const DRIVER_BRAND_LOGO = "/assets/logos/driver-384.png"
+/** Taxi drivers and delivery partners mark */
+export const DRIVER_BRAND_LOGO = "/assets/logos/appzeto-logo.png"
 
-/** The district crest. Shared surfaces and the fallback. */
+/** The default Appzeto brand mark. Shared surfaces and the fallback. */
 export const DEFAULT_BRAND_LOGO = "/logo.png"
 
 /** @deprecated Use DEFAULT_BRAND_LOGO */
