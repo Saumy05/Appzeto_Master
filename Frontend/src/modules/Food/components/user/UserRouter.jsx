@@ -227,6 +227,9 @@ export default function UserRouter() {
 
             {/* Complaints */}
             <Route path="complaints/submit/:orderId" element={<SubmitComplaint />} />
+
+            {/* Fallback for unmatched food user paths */}
+            <Route path="*" element={<Navigate to="/food/user" replace />} />
           </Route>
         </Route>
       </Routes>

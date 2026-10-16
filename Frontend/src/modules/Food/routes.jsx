@@ -73,6 +73,24 @@ function UserPathRedirect() {
   return <Navigate to={newPath} replace />
 }
 
+function RedirectToTaxi() {
+  const location = useLocation()
+  const target = (location.pathname.replace(/^\/food\/taxi/, '/taxi') || '/taxi') + location.search
+  return <Navigate to={target} replace />
+}
+
+function RedirectToHotel() {
+  const location = useLocation()
+  const target = (location.pathname.replace(/^\/food\/hotel/, '/hotel') || '/hotel') + location.search
+  return <Navigate to={target} replace />
+}
+
+function RedirectToTours() {
+  const location = useLocation()
+  const target = (location.pathname.replace(/^\/food\/tours/, '/tours') || '/tours') + location.search
+  return <Navigate to={target} replace />
+}
+
 // Scroll to top on forward navigations only — keep / restore position on back (POP).
 // Main tabs + category browse own their scroll (KeepAlive) — never fight them here.
 function ScrollToTop() {
@@ -352,6 +370,11 @@ export default function App() {
               </Suspense>
             }
           />
+
+          {/* Cross-module redirects if user types /food/taxi/* or /food/hotel/* */}
+          <Route path="taxi/*" element={<RedirectToTaxi />} />
+          <Route path="hotel/*" element={<RedirectToHotel />} />
+          <Route path="tours/*" element={<RedirectToTours />} />
 
           {/* User Module - Explicitly mapped to /user and the catch-all for /food/ and / */}
           {/* NOTE: /user/food is a common mis-navigation - redirect to correct /food/user home */}
