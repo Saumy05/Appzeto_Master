@@ -35,28 +35,28 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173,
-    strictPort: true,
+    port: 5174,
+    strictPort: false,
     watch: {
       usePolling: true,
     },
     proxy: {
-      // Backend API (default 5000)
+      // Backend API (default 5002)
       '/api/v1': {
-        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5002',
         changeOrigin: true,
       },
       // Uploaded images are stored as root-relative paths (/uploads/x.webp) so
       // that no server origin ends up in the database. In production nginx
-      // serves them from the same domain as the app; in dev the app is on 5173
-      // and the files are on 5000, so they are proxied here.
+      // serves them from the same domain as the app; in dev the app is on 5174
+      // and the files are on 5002, so they are proxied here.
       '/uploads': {
-        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5002',
         changeOrigin: true,
       },
       // Proxy Socket.IO so frontend-origin socket connections are forwarded to backend in dev
       '/socket.io': {
-        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_PROXY_TARGET || 'http://localhost:5002',
         ws: true,
         changeOrigin: true,
       },
