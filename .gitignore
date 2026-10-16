@@ -1,0 +1,108 @@
+# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Environment / secrets ───────────────────────────────────────────────────
+# Applies at every depth (Backend/.env, Frontend/.env, ...). Keep examples.
+.env
+.env.*
+!.env.example
+!.env.*.example
+.env*.local
+
+# Credential material & certificates
+firebase-service-account.json
+*-service-account.json
+serviceAccountKey.json
+*.pem
+*.key
+*.p12
+*.p8
+*.keystore
+*.jks
+*.mobileprovision
+
+# ─── Build outputs ───────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+web-build/
+*.local
+*.tsbuildinfo
+
+# ─── Mobile binaries ─────────────────────────────────────────────────────────
+*.apk
+*.aab
+*.ipa
+apps/*.apk
+
+# ─── Expo / React Native ─────────────────────────────────────────────────────
+.expo/
+.expo-shared/
+expo-env.d.ts
+.metro-health-check*
+.kotlin/
+*.orig.*
+
+# ─── Flutter & Dart ──────────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+flutter_*.png
+
+# ─── Runtime data & uploads ──────────────────────────────────────────────────
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+pids
+*.pid
+*.seed
+*.pid.lock
+.sessions.json
+scripts/perf/.sessions.json
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+coverage/
+*.lcov
+.nyc_output
+
+# ─── Reference material, not part of the build ───────────────────────────────
+# v1-ui: the original client-approved prototype.
+v1-ui/
+# _port-sources: staged porting modules not yet wired in.
+_port-sources/
+
+# ─── Editor / OS / AI Assistants ─────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.gemini/
+.claude/
+
+# ─── Scratch & Backups ───────────────────────────────────────────────────────
+notes.txt
+*.tmp
+backups/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat

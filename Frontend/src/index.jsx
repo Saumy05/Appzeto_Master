@@ -1,0 +1,230 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Toaster } from 'sonner'
+import App from './app/App.jsx'
+import { isModuleAuthenticated } from './shared/utils/moduleAuth.js'
+import { syncThemeForPath } from './shared/utils/theme.js'
+import { NATIVE_LAST_ROUTE_KEY, modulePrefixFor, resolveAppColdStartRoute } from './shared/utils/activeModule.js'
+import { installHistoryStateSanitizer } from './shared/utils/historyState.js'
+/*
+ * Font Awesome ships with the bundle rather than being fetched at runtime.
+ *
+ * It used to come from a CDN <link> in index.html. Every icon in the app is a
+ * Font Awesome <i> — 321 of them across 56 files, including the whole bottom
+ * nav and every back button — so when that request did not arrive, the icons
+ * did not simply degrade, they vanished, leaving unlabelled gaps where the
+ * navigation should be.
+ *
+ * Pinned to the 6.x line the icon names were written against; the v7 upgrade
+ * renames icons and is not a drop-in.
+ */
+import '@fortawesome/fontawesome-free/css/all.min.css'
+import './shared/styles/global.css'
+
+// ─── Dima Hasao Food Module Initialization ───────────────────────────────────
+
+// Load food module business settings (favicon, title) — non-critical
+import('./modules/Food/utils/businessSettings.js')
+  .then(({ loadBusinessSettings }) => loadBusinessSettings())
+  .catch(() => { /* Silently fail — settings load when admin authenticates */ })
+
+function getInitialPathname() {
+  if (typeof window === 'undefined') return '/'
+
+  const hash = String(window.location?.hash || '')
+  if (hash.startsWith('#/')) {
+    return hash.slice(1).split('?')[0] || '/'
+  }
+
+  const pathname = String(window.location?.pathname || '/')
+  return pathname.replace(/\/index\.html$/i, '') || '/'
+}
+
+function isNativeLikeShell() {
+  if (typeof window === 'undefined') return false
+
+  const protocol = String(window.location?.protocol || '').toLowerCase()
+  const userAgent = String(window.navigator?.userAgent || '').toLowerCase()
+
+  return (
+    Boolean(window.flutter_inappwebview) ||
+    Boolean(window.ReactNativeWebView) ||
+    protocol === 'file:' ||
+    userAgent.includes(' wv') ||
+    userAgent.includes('; wv')
+  )
+}
+
+function resolveNativeInitialRoute() {
+  if (typeof window === 'undefined') return '/login'
+
+  const rawPathname = String(window.location?.pathname || '')
+  const pathname = rawPathname.replace(/\/index\.html$/i, '') || '/'
+  const storedRoute = String(localStorage.getItem(NATIVE_LAST_ROUTE_KEY) || '').trim()
+
+  // Routes that depend on React Router state (pickup/drop etc.) must never
+  // be restored after an app restart — the state is gone, showing stale data.
+  const TRANSIENT_SEGMENTS = [
+    '/ride/select-vehicle', '/ride/select-location', '/ride/searching',
+    '/ride/tracking', '/ride/complete', '/ride/chat',
+    '/parcel/searching', '/parcel/tracking', '/parcel/details', '/parcel/contacts',
+    '/intercity/details', '/intercity/confirm',
+    '/rental/vehicle', '/rental/schedule', '/rental/kyc', '/rental/deposit', '/rental/confirmed',
+  ]
+  const isTransient = (r) => TRANSIENT_SEGMENTS.some((s) => r.includes(s))
+
+  // Explicit deep-link / in-app path still wins (except broken transient ride flows).
+  if (pathname.startsWith('/taxi/')) return isTransient(pathname) ? '/taxi/user' : pathname
+  // Single-segment aliases that app/routes.jsx redirects into Food.
+  if (pathname.startsWith('/restaurant')) return `/food${pathname}`
+  if (pathname.startsWith('/delivery')) return `/food${pathname}`
+  if (pathname.startsWith('/user')) return `/food${pathname}`
+  // Any other mounted module, served from its own path. This used to name
+  // only /food and /admin, so the Hotel partner APK — which loads
+  // /hotel/partner — matched nothing, fell through to the consumer cold start
+  // below, and opened #/app/login instead of the partner panel.
+  if (modulePrefixFor(pathname)) return pathname
+
+  // Cold start at `/` or blank: restore last consumer module home.
+  if (storedRoute.startsWith('/taxi/') || storedRoute.startsWith('/food/') || storedRoute.startsWith('/admin')) {
+    if (isModuleAuthenticated('restaurant') && storedRoute.startsWith('/food/restaurant')) {
+      return storedRoute
+    }
+    if (isModuleAuthenticated('delivery') && storedRoute.startsWith('/food/delivery')) {
+      return storedRoute
+    }
+    if (isModuleAuthenticated('admin') && storedRoute.startsWith('/admin')) {
+      return storedRoute
+    }
+    return resolveAppColdStartRoute()
+  }
+
+  if (isModuleAuthenticated('restaurant')) return '/food/restaurant'
+  if (isModuleAuthenticated('delivery')) return '/food/delivery'
+  if (isModuleAuthenticated('admin')) return '/admin'
+  if (isModuleAuthenticated('user')) return resolveAppColdStartRoute()
+
+  return resolveAppColdStartRoute()
+}
+
+function bootstrapNativeHashRoute() {
+  if (!isNativeLikeShell() || typeof window === 'undefined') return
+
+  const currentHash = String(window.location?.hash || '')
+  const hashPath = currentHash.startsWith('#') ? currentHash.slice(1).split('?')[0] : ''
+  const rawPathname = String(window.location?.pathname || '')
+  const pathname = rawPathname.replace(/\/index\.html$/i, '') || '/'
+  const targetPath = resolveNativeInitialRoute()
+  const search = String(window.location?.search || '')
+
+  if (currentHash.startsWith('#/')) {
+    // Which module the shell is meant to be in. Derived from the same list as
+    // above so a module added to the routes cannot be missed here — naming
+    // only taxi/food/admin meant a Hotel or Tours target scored no prefix, so
+    // the branch below rewrote the hash on every load and no in-module route
+    // could survive a reload.
+    const nativePathPrefix = modulePrefixFor(targetPath)
+
+    const hashMatchesPrefix = nativePathPrefix
+      ? hashPath === nativePathPrefix || hashPath.startsWith(`${nativePathPrefix}/`)
+      : false;
+    const pathSuggestsTaxi = pathname.startsWith('/taxi/');
+
+    // Normalize stale hash routes in native shells (e.g. /taxi/... with #/food/...)
+    if ((pathSuggestsTaxi && !hashPath.startsWith('/taxi/')) || !hashMatchesPrefix) {
+      window.history.replaceState(null, '', `#${targetPath}${search}`)
+    }
+    return
+  }
+
+  window.history.replaceState(null, '', `#${targetPath}${search}`)
+}
+
+/*
+ * react-router puts whatever you pass as `navigate(path, { state })` straight
+ * into history.pushState, which structured-clones it. Anything carrying a
+ * Proxy, a function or a class instance throws DataCloneError, and because
+ * that throw comes back out of navigate(), the navigation simply does not
+ * happen -- no route change, no error on screen. The taxi axios instance
+ * returns Proxy-wrapped responses, so any screen that forwards an API payload
+ * as route state hits this.
+ *
+ * Call sites should still snapshot their own state; this is the net under
+ * them, retrying once with a sanitized copy rather than losing the navigation.
+ * It was written but never installed.
+ */
+installHistoryStateSanitizer()
+
+bootstrapNativeHashRoute()
+syncThemeForPath(getInitialPathname())
+
+// ─── Suppress known non-critical errors ──────────────────────────────────────
+
+const originalError = console.error
+console.error = (...args) => {
+  const errorStr = args.join(' ')
+
+  if (typeof args[0] === 'string' && (
+    args[0].includes('chrome-extension://') ||
+    args[0].includes('_$initialUrl') ||
+    args[0].includes('_$onReInit') ||
+    args[0].includes('_$bindListeners')
+  )) return
+
+  if (
+    errorStr.includes('Timeout expired') ||
+    errorStr.includes('GeolocationPositionError') ||
+    errorStr.includes('Geolocation error') ||
+    errorStr.includes('User denied Geolocation') ||
+    errorStr.includes('permission denied')
+  ) return
+
+  const hasNetworkError = args.some(arg =>
+    arg && typeof arg === 'object' &&
+    (arg.name === 'AxiosError') &&
+    (arg.code === 'ERR_NETWORK' || arg.message === 'Network Error')
+  )
+  if (hasNetworkError) return
+
+  if (
+    errorStr.includes('🌐 Network Error') ||
+    errorStr.includes('Network Error - Backend server may not be running') ||
+    (errorStr.includes('ERR_NETWORK') && errorStr.includes('AxiosError'))
+  ) return
+
+  if (
+    errorStr.includes('Restaurant Socket connection error') ||
+    errorStr.includes('xhr poll error') ||
+    (errorStr.includes('WebSocket connection to') && errorStr.includes('socket.io') && errorStr.includes('failed'))
+  ) return
+
+  originalError.apply(console, args)
+}
+
+window.addEventListener('unhandledrejection', (event) => {
+  const error = event.reason || event
+  const errorMsg = error?.message || String(error) || ''
+  const errorName = error?.name || ''
+  if (
+    errorMsg.includes('Timeout expired') ||
+    errorMsg.includes('User denied Geolocation') ||
+    errorMsg.includes('permission denied') ||
+    errorName === 'GeolocationPositionError'
+  ) {
+    event.preventDefault()
+    return
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { AppProviders } from './app/providers.jsx'
+
+const rootElement = document.getElementById('root')
+if (!rootElement) throw new Error('Root element not found')
+
+createRoot(rootElement).render(
+  <AppProviders>
+    <App />
+  </AppProviders>
+)

@@ -1,0 +1,424 @@
+import React, { useEffect, useRef, useState } from "react";
+
+import "./onboarding.css";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Clock,
+  Mail,
+  Search,
+  ChevronRight
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useSettings } from "../../../../shared/context/SettingsContext";
+import {
+  clearDriverRegistrationSession,
+  getDriverApprovalStatus,
+  getDriverDocumentTemplates,
+  clearDriverAuthState,
+  getLocalDriverToken,
+  persistDriverAuthSession,
+} from "../../services/registrationService";
+import { DRIVER_BRAND_LOGO, logoFallback } from '@/shared/constants/brandLogo';
+
+const APPROVAL_POLL_MS = 2500;
+const unwrapDriver = (response) =>
+  response?.data?.data || response?.data || response;
+
+const isDriverApproved = (driver) => {
+  if (!driver) {
+    return false;
+  }
+
+  const approval = String(driver.approve ?? "").toLowerCase();
+  const status = String(driver.status || "").toLowerCase();
+
+  return (
+    driver.approve === true ||
+    driver.approve === 1 ||
+    ["true", "1", "yes", "approved"].includes(approval) ||
+    ["approved", "active", "verified"].includes(status)
+  );
+};
+
+const redirectToDriverLogin = (navigate) => {
+  clearDriverAuthState();
+  navigate("/taxi/driver/login", { replace: true });
+};
+
+const syncPushTokens = async () => {
+  await Promise.allSettled([
+    window.__flushNativeFcmToken?.(),
+    window.__registerBrowserFcmToken?.({ interactive: true }),
+  ]);
+};
+
+const RegistrationStatus = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { settings } = useSettings();
+  const [checking, setChecking] = useState(true);
+  const [driver, setDriver] = useState(null);
+  const [documentTemplates, setDocumentTemplates] = useState([]);
+  const [statusMessage, setStatusMessage] = useState(
+    "Waiting for admin approval",
+  );
+  const timeoutRef = useRef(null);
+  const requestInFlightRef = useRef(false);
+  const mountedRef = useRef(false);
+
+  const appName = settings.general?.app_name || "App";
+  // One mark for the rider and delivery apps. Deliberately not the CMS
+  // logo setting: that still holds the old vendor artwork, and these two
+  // apps are meant to look like the district's, not like whatever is left
+  // configured in taxi settings.
+  const appLogo = DRIVER_BRAND_LOGO;
+  const isVehicleReapproval = location.state?.statusReason === "vehicle-update" || driver?.approve === false;
+  const routePrefix = '/taxi/driver';
+
+  useEffect(() => {
+    if (location.state?.role) {
+      persistDriverAuthSession({ role: "driver" });
+    }
+
+    const onboardingToken =
+      location.state?.completedRegistration?.token ||
+      location.state?.token ||
+      "";
+
+    if (onboardingToken) {
+      persistDriverAuthSession({ token: onboardingToken, role: "driver" });
+    }
+
+    syncPushTokens().catch(() => {});
+
+    mountedRef.current = true;
+
+    const fetchTemplates = async () => {
+        try {
+            const response = await getDriverDocumentTemplates("driver");
+            const templates = response?.data?.data?.results || response?.data?.results || [];
+            if (mountedRef.current) setDocumentTemplates(templates);
+        } catch (err) {
+            console.error("Failed to fetch templates", err);
+        }
+    };
+
+    fetchTemplates();
+
+    const checkApproval = async () => {
+      if (!mountedRef.current || requestInFlightRef.current) {
+        return;
+      }
+
+      requestInFlightRef.current = true;
+      const token = getLocalDriverToken();
+
+      if (!token) {
+        if (mountedRef.current) {
+          setChecking(false);
+          setStatusMessage(
+            "Registration session not found. Please start again.",
+          );
+        }
+        redirectToDriverLogin(navigate);
+        requestInFlightRef.current = false;
+        return;
+      }
+
+      try {
+        const response = await getDriverApprovalStatus();
+        const driverData = unwrapDriver(response);
+        if (mountedRef.current) setDriver(driverData);
+        
+        const isApproved = isDriverApproved(driverData);
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        if (isApproved) {
+          clearDriverRegistrationSession();
+          navigate("/taxi/driver/home", { replace: true });
+          requestInFlightRef.current = false;
+          return;
+        }
+
+        setChecking(false);
+        setStatusMessage("Your application is being audited by our verification team.");
+      } catch (error) {
+        if (!mountedRef.current) {
+          return;
+        }
+
+        if (error?.status === 401 || error?.status === 403) {
+          redirectToDriverLogin(navigate);
+          requestInFlightRef.current = false;
+          return;
+        }
+
+        if (error?.status === 404) {
+          setStatusMessage("Driver account deleted. Redirecting to login...");
+          redirectToDriverLogin(navigate);
+          requestInFlightRef.current = false;
+          return;
+        }
+
+        setChecking(false);
+        setStatusMessage(
+          error?.message || "Your request is still under review.",
+        );
+      } finally {
+        requestInFlightRef.current = false;
+      }
+    };
+
+    checkApproval();
+    timeoutRef.current = setInterval(checkApproval, APPROVAL_POLL_MS);
+
+    return () => {
+      mountedRef.current = false;
+      requestInFlightRef.current = false;
+      clearInterval(timeoutRef.current);
+    };
+  }, [location.state, navigate]);
+
+const getStatusColor = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (['approved', 'active', 'verified', 'true', '1'].includes(s)) return 'text-[var(--dh-primary)] bg-[var(--dh-primary-soft)]';
+    if (['rejected', 'declined', 'failed'].includes(s)) return 'text-rose-500 bg-rose-50';
+    return 'text-amber-500 bg-amber-50';
+  };
+
+  const getDocumentStatus = (doc = {}) =>
+    String(
+      doc?.approvalStatus ||
+      doc?.reviewStatus ||
+      doc?.status ||
+      'pending',
+    ).toLowerCase();
+
+  const getDocumentReason = (doc = {}) =>
+    String(
+      doc?.comment ||
+      doc?.remarks ||
+      doc?.reason ||
+      doc?.admin_comment ||
+      doc?.rejection_reason ||
+      '',
+    ).trim();
+
+  const getDocumentImage = (doc = {}) =>
+    String(
+      doc?.previewUrl ||
+      doc?.secureUrl ||
+      doc?.url ||
+      '',
+    ).trim();
+
+  const getDocumentReviewTimestamp = (doc = {}) => {
+    const reviewTime = new Date(
+      doc?.reverificationRequestedAt ||
+      doc?.uploadedAt ||
+      doc?.updatedAt ||
+      0,
+    ).getTime();
+    const reviewedTime = new Date(doc?.reviewedAt || 0).getTime();
+
+    if (!Number.isFinite(reviewTime) || reviewTime <= 0) {
+      return false;
+    }
+
+    return Number.isFinite(reviewedTime) && reviewedTime > 0 && reviewTime >= reviewedTime;
+  };
+
+  const getDocumentDetails = () => {
+    const submittedDocumentSummary = Array.isArray(location.state?.submittedDocumentSummary)
+      ? location.state.submittedDocumentSummary.map((item) => ({
+          ...item,
+        }))
+      : [];
+
+    if (!driver || !documentTemplates.length) {
+      return submittedDocumentSummary;
+    }
+    
+    const docs = driver.documents || {};
+    const flatFields = documentTemplates.flatMap(t => t.fields || []);
+    
+    return flatFields.map(field => {
+        const doc = docs[field.key];
+        const status = getDocumentStatus(doc);
+        const reason = getDocumentReason(doc);
+        
+        return {
+            label: field.label || field.name || field.key,
+            status,
+            reason,
+            key: field.key,
+            previewUrl: getDocumentImage(doc),
+            reverificationPending: status === 'pending' && getDocumentReviewTimestamp(doc),
+        };
+    });
+  };
+
+  const docDetails = getDocumentDetails();
+  const rejectedDocs = docDetails.filter(d => d.status === 'rejected' || d.status === 'declined');
+  const pendingReverificationDocs = docDetails.filter((doc) => doc.reverificationPending);
+
+
+  return (
+    <div 
+        className="dh-onboarding min-h-dvh px-5 pb-10 pt-12 select-none overflow-x-hidden flex flex-col items-center"
+    >
+      <header className="mb-10 w-full flex flex-col items-center">
+        {appLogo ? (
+          <img
+            src={appLogo}
+            onError={logoFallback}
+            alt={appName}
+            className="h-10 object-contain drop-shadow-sm"
+          />
+        ) : (
+          <div className="rounded-2xl bg-[var(--dh-primary)] px-5 py-2.5 text-lg font-black tracking-tighter text-white shadow-xl shadow-[var(--dh-primary)]/20 border border-white/10">
+            {appName}
+          </div>
+        )}
+      </header>
+
+      <main className="w-full max-w-sm space-y-8">
+        <section className="flex flex-col items-center text-center space-y-6">
+            <div className="relative group">
+                <div className="w-28 h-28 bg-white rounded-[2.5rem] flex items-center justify-center text-[var(--dh-text)] shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-white/80 group-hover:scale-105 transition-transform duration-500">
+                    <Clock size={42} strokeWidth={2.5} className="animate-pulse" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[var(--dh-primary)] rounded-2xl flex items-center justify-center text-white border-4 border-white shadow-xl">
+                    <Search size={16} strokeWidth={3} />
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--dh-muted)] opacity-60">
+                    {pendingReverificationDocs.length > 0 ? "Submission received" : isVehicleReapproval ? "Update in review" : "Live Audit Status"}
+                </p>
+                <h1 className="font-['Outfit'] text-[42px] font-black leading-[1] tracking-[-0.04em] text-[var(--dh-text)]">
+                    {rejectedDocs.length > 0 ? (
+                        <>Action <span className="text-[var(--dh-muted)]">Required</span></>
+                    ) : pendingReverificationDocs.length > 0 ? (
+                        <>Verification <span className="text-[var(--dh-muted)]">Pending</span></>
+                    ) : (
+                        <>Review <span className="text-[var(--dh-muted)]">Started</span></>
+                    )}
+                </h1>
+                <p className="mx-auto max-w-[28ch] text-[15px] font-bold leading-relaxed text-[var(--dh-muted)] opacity-80">
+                    {rejectedDocs.length > 0 
+                        ? "Some of your documents were rejected. Please re-upload them to continue."
+                        : pendingReverificationDocs.length > 0
+                        ? "Your updated documents were sent back to admin for another review."
+                        : "Our team is currently performing a manual audit of your profile."}
+                </p>
+            </div>
+        </section>
+
+        {driver && (
+            <motion.section 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.01 }}
+                className="bg-white rounded-[2.5rem] p-6 border border-[var(--dh-border)] shadow-[0_10px_40px_rgba(0,0,0,0.04)] space-y-4"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[var(--dh-primary-soft)] rounded-[1rem] flex items-center justify-center text-[var(--dh-muted)]">
+                        <Mail size={24} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h4 className="text-base font-black tracking-tight text-[var(--dh-text)] truncate">{driver.name || 'Partner'}</h4>
+                        <p className="text-[11px] font-black text-[var(--dh-muted)] uppercase tracking-widest opacity-60 truncate">
+                            +91 {driver.phone}
+                        </p>
+                    </div>
+                    <div className="flex-shrink-0 px-3 py-1.5 bg-[var(--dh-primary)] text-white rounded-full text-[9px] font-black uppercase tracking-[0.15em] shadow-lg shadow-[var(--dh-primary)]/20 border border-white/10">
+                        {driver.status || 'Pending'}
+                    </div>
+                </div>
+            </motion.section>
+        )}
+
+        <section className="space-y-4">
+            <h3 className="text-[11px] font-black text-[var(--dh-muted)] uppercase tracking-[0.2em] px-2 opacity-60">Checklist Summary</h3>
+            <div className="space-y-4">
+                {docDetails.length > 0 ? docDetails.map((doc, idx) => (
+                    <div key={idx} className="bg-white rounded-[1.8rem] border border-[var(--dh-border)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-[15px] font-black tracking-tight text-[var(--dh-text)] truncate">{doc.label}</span>
+                            <div className="flex flex-wrap justify-end gap-2">
+                                <span className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${getStatusColor(doc.status)}`}>
+                                    {doc.status}
+                                </span>
+                            </div>
+                        </div>
+                        {doc.reason && (
+                            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+                                <p className="text-[13px] font-bold text-rose-600 leading-relaxed">
+                                    <span className="opacity-60 uppercase text-[10px] block mb-1 tracking-widest">Reason for rejection:</span>
+                                    {doc.reason}
+                                </p>
+                            </div>
+                        )}
+                        {doc.reverificationPending && (
+                            <div className="p-4 bg-[var(--dh-primary)]/5 border border-[var(--dh-primary)]/10 rounded-2xl">
+                                <p className="text-[13px] font-bold text-[var(--dh-muted)] leading-relaxed">
+                                    Re-uploaded and waiting for admin re-verification.
+                                </p>
+                            </div>
+                        )}
+                        {(doc.status === 'rejected' || doc.status === 'declined') && (
+                            <button
+                                onClick={() => navigate(`${routePrefix}/documents`, {
+                                    state: {
+                                        focusDocumentKey: doc.key,
+                                        fromRegistrationStatus: true,
+                                    },
+                                })}
+                                className="w-full h-12 bg-[var(--dh-primary)] text-white rounded-2xl flex items-center justify-center gap-2 text-[13px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-[var(--dh-primary)]/10"
+                            >
+                                Fix Document <ChevronRight size={16} strokeWidth={3} />
+                            </button>
+                        )}
+                    </div>
+                )) : driver ? (
+                    <div className="bg-white rounded-[1.8rem] border border-[var(--dh-border)] p-10 text-center shadow-sm">
+                        <p className="text-[12px] font-black uppercase tracking-widest text-[var(--dh-muted)] opacity-60">No documents were required for your application.</p>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-[1.8rem] border border-[var(--dh-border)] p-10 text-center shadow-sm">
+                        <div className="h-6 w-6 border-2 border-[var(--dh-border)] border-t-[var(--dh-primary)] rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-[12px] font-black uppercase tracking-widest text-[var(--dh-muted)] opacity-60">Loading your application...</p>
+                    </div>
+                )}
+            </div>
+        </section>
+
+        <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-[28px] border border-[var(--dh-border)] bg-white/95 p-4 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl flex flex-col gap-3">
+            {rejectedDocs.length > 0 ? (
+                <div className="rounded-2xl bg-rose-50 border border-rose-100 px-5 py-4 text-[12px] font-bold leading-relaxed text-rose-600 shadow-sm">
+                    Select a rejected document above to re-upload the correct file.
+                </div>
+            ) : null}
+            <button 
+                onClick={() => navigate(`${routePrefix}/support/chat`, {
+                    state: {
+                        backPath: `${routePrefix}/registration-status`,
+                        backState: location.state || null,
+                    },
+                })}
+                className="w-full h-14 bg-white border border-[var(--dh-border)] text-[var(--dh-muted)] rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold active:scale-95 transition-all"
+            >
+                Contact Support
+            </button>
+        </div>
+      </main>
+    </div>
+  );
+};
+export default RegistrationStatus;
+

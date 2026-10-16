@@ -1,0 +1,1215 @@
+import crypto from 'node:crypto';
+import mongoose from 'mongoose';
+import { ApiError } from '../../../../utils/ApiError.js';
+import { normalizePoint } from '../../../../utils/geo.js';
+import { resolveConfiguredGatewayCredentials } from '../../services/paymentGatewayService.js';
+import { Driver } from '../../driver/models/Driver.js';
+import { WalletTransaction } from '../../driver/models/WalletTransaction.js';
+import { applyDriverWalletAdjustment, serializeDriverWallet } from '../../driver/services/walletService.js';
+import { RIDE_LIVE_STATUS, RIDE_STATUS } from '../../constants/index.js';
+import { createRideRecord, ensureRideParticipantAccess, getAllowedRidePaymentMethodsForPricing, getActiveRideForIdentity, getRideDetails, getRideRoom, listRideHistoryForIdentity, serializeRideRealtime, submitRideFeedback, updateRideLifecycle } from "../../services/rideService.js";
+
+import { cancelRideByUser, emitToDriver, getSocketServer, startDispatchFlow } from "../../services/dispatchService.js";
+
+import { getTipSettings } from '../../services/appSettingsService.js';
+import { matchDrivers } from '../../services/matchingService.js';
+import { Ride } from '../models/Ride.js';
+import { UserWallet } from '../models/UserWallet.js';
+import { verifyPaymentSignature } from '../../../../core/payments/razorpay.service.js';
+import { assertClaimIsOwn, paymentClaimKey, withPaymentClaim } from '../../services/paymentClaimService.js';
+import { quoteRideFare } from '../../services/fareService.js';
+import { clearDriverRoute } from '../../socket/services/driverRouteService.js';
+import { taxiRazorpayRequest } from '../../services/razorpayClient.js';
+
+const EARTH_RADIUS_METERS = 6371000;
+const AVERAGE_CITY_SPEED_KMPH = 24;
+const PAYMENT_PAID_STATUSES = new Set(['paid', 'captured', 'completed']);
+
+const toRadians = (value) => (Number(value) * Math.PI) / 180;
+
+const calculateDistanceMeters = (fromCoords = [], toCoords = []) => {
+  const [fromLng, fromLat] = fromCoords;
+  const [toLng, toLat] = toCoords;
+
+  if (![fromLng, fromLat, toLng, toLat].every((value) => Number.isFinite(Number(value)))) {
+    return null;
+  }
+
+  const latDelta = toRadians(toLat - fromLat);
+  const lngDelta = toRadians(toLng - fromLng);
+  const startLat = toRadians(fromLat);
+  const endLat = toRadians(toLat);
+  const a =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(startLat) * Math.cos(endLat) * Math.sin(lngDelta / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Math.round(EARTH_RADIUS_METERS * c);
+};
+
+const estimateEtaMinutes = (distanceMeters) => {
+  if (!Number.isFinite(distanceMeters) || distanceMeters <= 0) {
+    return 1;
+  }
+
+  const metersPerMinute = (AVERAGE_CITY_SPEED_KMPH * 1000) / 60;
+  return Math.max(1, Math.round(distanceMeters / metersPerMinute));
+};
+
+const normalizeMoneyAmount = (value, fieldName = 'amount') => {
+  const amount = Number(value);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new ApiError(400, `${fieldName} must be greater than zero`);
+  }
+
+  return Math.round(amount * 100) / 100;
+};
+
+const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
+
+const ensureUserWallet = async (userId, session = null) => {
+  if (!userId) return;
+  await UserWallet.updateOne(
+    { userId },
+    { $setOnInsert: { userId, balance: 0, refundWallet: 0, transactions: [] } },
+    { upsert: true, ...(session ? { session } : {}) },
+  );
+};
+
+const isDriverCollectionPaid = (ride = {}) =>
+  Boolean(ride?.driverPaymentCollection?.paidAt) ||
+  PAYMENT_PAID_STATUSES.has(String(ride?.driverPaymentCollection?.status || '').trim().toLowerCase());
+
+const buildCompletionAmounts = (ride, tipAmount = 0) => {
+  const fare = roundMoney(ride?.fare || 0);
+  const normalizedTipAmount = roundMoney(tipAmount || 0);
+  const fareDue = isDriverCollectionPaid(ride) ? 0 : fare;
+  return {
+    fare,
+    fareDue,
+    tipAmount: normalizedTipAmount,
+    totalCharge: roundMoney(fareDue + normalizedTipAmount),
+  };
+};
+
+const validateRideCompletionFeedback = async ({ rating, tipAmount }) => {
+  const numericRating = Number(rating);
+  const numericTip = roundMoney(tipAmount || 0);
+
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+    throw new ApiError(400, 'rating must be an integer between 1 and 5');
+  }
+
+  if (!Number.isFinite(numericTip) || numericTip < 0) {
+    throw new ApiError(400, 'tipAmount must be zero or greater');
+  }
+
+  const tipSettings = await getTipSettings();
+  const tipsEnabled = String(tipSettings.enable_tips || '1') === '1';
+  const minimumTipAmount = Number(tipSettings.min_tip_amount || 0);
+
+  if (!tipsEnabled && numericTip > 0) {
+    throw new ApiError(400, 'Tips are currently disabled');
+  }
+
+  if (tipsEnabled && numericTip > 0 && minimumTipAmount > 0 && numericTip < minimumTipAmount) {
+    throw new ApiError(400, `tipAmount must be at least ${minimumTipAmount}`);
+  }
+
+  return {
+    rating: numericRating,
+    tipAmount: numericTip,
+  };
+};
+
+const loadCompletedRideForUser = async (rideId, userId, session = null) => {
+  const ride = await Ride.findOne({
+    _id: rideId,
+    userId,
+    status: RIDE_STATUS.COMPLETED,
+  }).session(session);
+
+  if (!ride) {
+    throw new ApiError(404, 'Completed ride not found');
+  }
+
+  if (!ride.driverId) {
+    throw new ApiError(409, 'Ride has no assigned driver');
+  }
+
+  return ride;
+};
+
+const finalizeRideCompletion = async ({
+  ride,
+  userId,
+  rating,
+  comment = '',
+  tipAmount = 0,
+  paymentRecord = null,
+  paymentSource = '',
+  session = null,
+}) => {
+  if (ride.feedback?.submittedAt) {
+    const samePayment =
+      (paymentRecord?.providerPaymentId && String(ride.driverPaymentCollection?.providerPaymentId || '') === paymentRecord.providerPaymentId) ||
+      (paymentRecord?.providerPaymentId && String(ride.feedback?.tipPaymentId || '') === paymentRecord.providerPaymentId);
+
+    if (samePayment) {
+      return getRideDetails(ride._id);
+    }
+
+    throw new ApiError(409, 'Feedback already submitted for this ride');
+  }
+
+  const driver = await Driver.findById(ride.driverId).session(session);
+  if (!driver) {
+    throw new ApiError(404, 'Driver not found');
+  }
+
+  const { fare, fareDue, totalCharge } = buildCompletionAmounts(ride, tipAmount);
+  const previousPaymentMethod = String(ride.paymentMethod || 'cash').trim().toLowerCase() === 'cash' ? 'cash' : 'online';
+  const driverCreditAmount = roundMoney(
+    tipAmount + (fareDue > 0 && previousPaymentMethod === 'cash' ? fare : 0),
+  );
+
+  let walletResult = null;
+  if (driverCreditAmount > 0) {
+    walletResult = await applyDriverWalletAdjustment({
+      driverId: ride.driverId,
+      rideId: ride._id,
+      amount: driverCreditAmount,
+      type: 'adjustment',
+      description: fareDue > 0
+        ? 'Ride completion payment credited from rider'
+        : 'Ride tip credited from rider',
+      metadata: {
+        source: paymentSource || 'ride_completion',
+        rideId: String(ride._id),
+        userId: String(userId),
+        farePortion: fareDue > 0 ? fare : 0,
+        tipAmount,
+        totalCharge,
+        provider: paymentRecord?.provider || '',
+        providerOrderId: paymentRecord?.providerOrderId || '',
+        providerPaymentId: paymentRecord?.providerPaymentId || '',
+      },
+      session,
+    });
+  }
+
+  if (fareDue > 0) {
+    ride.paymentMethod = 'online';
+    ride.driverPaymentCollection = {
+      provider: paymentRecord?.provider || ride.driverPaymentCollection?.provider || '',
+      providerId: paymentRecord?.providerId || ride.driverPaymentCollection?.providerId || paymentRecord?.providerPaymentId || '',
+      providerOrderId: paymentRecord?.providerOrderId || '',
+      providerPaymentId: paymentRecord?.providerPaymentId || '',
+      providerMode: paymentRecord?.providerMode || ride.driverPaymentCollection?.providerMode || '',
+      source: paymentRecord?.source || paymentSource || '',
+      status: 'paid',
+      amount: totalCharge,
+      currency: paymentRecord?.currency || ride.driverPaymentCollection?.currency || 'INR',
+      linkUrl: paymentRecord?.linkUrl || ride.driverPaymentCollection?.linkUrl || '',
+      paidAt: paymentRecord?.paidAt || new Date(),
+      updatedAt: new Date(),
+    };
+  } else if (paymentRecord?.providerPaymentId && !isDriverCollectionPaid(ride) && paymentRecord?.provider) {
+    ride.driverPaymentCollection = {
+      provider: paymentRecord.provider,
+      providerId: paymentRecord.providerId || paymentRecord.providerPaymentId || '',
+      providerOrderId: paymentRecord.providerOrderId || '',
+      providerPaymentId: paymentRecord.providerPaymentId || '',
+      providerMode: paymentRecord.providerMode || '',
+      source: paymentRecord.source || paymentSource || '',
+      status: 'paid',
+      amount: totalCharge,
+      currency: paymentRecord.currency || 'INR',
+      linkUrl: paymentRecord.linkUrl || '',
+      paidAt: paymentRecord.paidAt || new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  ride.feedback = {
+    rating,
+    comment: String(comment || '').trim(),
+    tipAmount,
+    tipPaymentId: paymentRecord?.providerPaymentId || '',
+    tipOrderId: paymentRecord?.providerOrderId || '',
+    tipPaidAt: paymentRecord?.providerPaymentId ? (paymentRecord?.paidAt || new Date()) : null,
+    submittedAt: new Date(),
+  };
+
+  driver.ratingCount = Number(driver.ratingCount || 0) + 1;
+  driver.totalRatingScore = Number(driver.totalRatingScore || 0) + rating;
+  driver.rating = Number((driver.totalRatingScore / driver.ratingCount).toFixed(1));
+
+  // Sequential: one transaction session cannot run operations in parallel.
+  await ride.save({ session });
+  await driver.save({ session });
+
+  return {
+    ride: await getRideDetails(ride._id),
+    walletResult,
+  };
+};
+
+const resolveRazorpayCredentials = async () => {
+  return resolveConfiguredGatewayCredentials('razor_pay');
+};
+
+const razorpayRequest = taxiRazorpayRequest;
+
+/**
+ * @route POST /v1/taxi/rides/fare-estimate
+ *
+ * What this trip will cost, before anyone commits to it.
+ *
+ * The app needs a number to show, and until now it computed one itself and sent
+ * it back as the fare. This is the same calculation the booking then checks
+ * against, so what the rider is quoted is what they are charged — the shape
+ * hotel, tours and festivals already use.
+ */
+export const estimateRideFare = async (req, res) => {
+  const {
+    vehicleTypeId, vehicleTypeIds, estimatedDistanceMeters, estimatedDurationMinutes,
+    serviceType, transport_type, zone_id, service_location_id,
+  } = req.body;
+
+  const resolvedVehicleTypeId = vehicleTypeId || (Array.isArray(vehicleTypeIds) ? vehicleTypeIds[0] : null);
+  if (!resolvedVehicleTypeId) {
+    throw new ApiError(400, 'vehicleTypeId is required');
+  }
+
+  const quote = await quoteRideFare({
+    vehicleTypeId: resolvedVehicleTypeId,
+    zoneId: zone_id || null,
+    serviceLocationId: service_location_id || null,
+    transportType: transport_type || 'taxi',
+    distanceMeters: Number(estimatedDistanceMeters || 0),
+    durationMinutes: Number(estimatedDurationMinutes || 0),
+    serviceType,
+  });
+
+  if (!quote) {
+    // Saying so plainly beats returning a number nobody configured.
+    return res.status(200).json({
+      success: true,
+      data: { priced: false, message: 'No fare is configured for this vehicle and route yet.' },
+    });
+  }
+
+  return res.status(200).json({ success: true, data: { priced: true, ...quote } });
+};
+
+export const createRide = async (req, res) => {
+  const { pickup, drop, pickupAddress, dropAddress, fare, estimatedDistanceMeters, estimatedDurationMinutes, vehicleTypeId, vehicleTypeIds, vehicleIconType, vehicleIconUrl, paymentMethod, serviceType, intercity, promo_code, zone_id, service_location_id, transport_type, scheduledAt } =
+    req.body;
+
+  if (!pickup || !drop) {
+    throw new ApiError(400, 'pickup and drop are required');
+  }
+
+  const resolvedVehicleTypeId = vehicleTypeId || (Array.isArray(vehicleTypeIds) ? vehicleTypeIds[0] : null);
+  if (!resolvedVehicleTypeId) {
+    throw new ApiError(400, 'vehicleTypeId is required');
+  }
+
+  const ride = await createRideRecord({
+    userId: req.auth.sub,
+    pickupCoords: normalizePoint(pickup, 'pickup'),
+    dropCoords: normalizePoint(drop, 'drop'),
+    pickupAddress,
+    dropAddress,
+    fare: Number(fare || 0),
+    estimatedDistanceMeters: Number(estimatedDistanceMeters || 0),
+    estimatedDurationMinutes: Number(estimatedDurationMinutes || 0),
+    vehicleTypeId,
+    vehicleTypeIds,
+    vehicleIconType,
+    vehicleIconUrl,
+    paymentMethod,
+    serviceType,
+    intercity,
+    promo_code,
+    zone_id,
+    service_location_id,
+    transport_type,
+    scheduledAt,
+  });
+
+  await startDispatchFlow(ride);
+
+  res.status(201).json({
+    success: true,
+    data: {
+      ride,
+      realtime: {
+        room: getRideRoom(ride._id),
+        rideId: String(ride._id),
+      },
+    },
+  });
+};
+
+export const getRideById = async (req, res) => {
+  await ensureRideParticipantAccess({
+    rideId: req.params.rideId,
+    role: req.auth.role,
+    entityId: req.auth.sub,
+  });
+
+  const ride = await getRideDetails(req.params.rideId);
+  const data = ride.toJSON();
+
+  // The start PIN is the rider's to give; the driver must never be sent it.
+  if (req.auth.role !== 'user') {
+    delete data.otp;
+  }
+  delete data.otpFailedAttempts;
+  delete data.otpLockedUntil;
+
+  res.json({
+    success: true,
+    data,
+  });
+};
+
+export const getMyActiveRide = async (req, res) => {
+  const ride = await getActiveRideForIdentity({
+    role: req.auth.role,
+    entityId: req.auth.sub,
+  });
+
+  res.json({
+    success: true,
+    data: ride ? serializeRideRealtime(ride, { viewerRole: req.auth.role }) : null,
+  });
+};
+
+export const listMyRides = async (req, res) => {
+  const history = await listRideHistoryForIdentity({
+    role: req.auth.role,
+    entityId: req.auth.sub,
+    limit: req.query.limit,
+    page: req.query.page,
+    category: req.query.category,
+  });
+
+  res.json({
+    success: true,
+    data: {
+      results: history.results,
+      total: history.pagination.total,
+      pagination: history.pagination,
+    },
+  });
+};
+
+export const updateRideStatus = async (req, res) => {
+  if (req.auth.role !== 'driver') {
+    throw new ApiError(403, 'Only drivers can update ride status');
+  }
+
+  const nextStatus = String(req.body.status || '').trim().toLowerCase();
+
+  if (![RIDE_LIVE_STATUS.ACCEPTED, RIDE_LIVE_STATUS.ARRIVING, RIDE_LIVE_STATUS.STARTED, RIDE_LIVE_STATUS.ARRIVED, RIDE_LIVE_STATUS.COMPLETED].includes(nextStatus)) {
+    throw new ApiError(400, 'status must be accepted, arriving, started, arrived, or completed');
+  }
+
+  const ride = await updateRideLifecycle({
+    rideId: req.params.rideId,
+    driverId: req.auth.sub,
+    nextStatus,
+    paymentMethod: req.body.paymentMethod,
+    otp: req.body.otp,
+  });
+
+  try {
+    const io = getSocketServer();
+    if (io) {
+      const populatedRide = await getRideDetails(ride._id);
+      const payload = {
+        rideId: String(populatedRide._id),
+        status: populatedRide.status,
+        liveStatus: populatedRide.liveStatus,
+        acceptedAt: populatedRide.acceptedAt,
+        arrivedAt: populatedRide.arrivedAt,
+        startedAt: populatedRide.startedAt,
+        completedAt: populatedRide.completedAt,
+      };
+      const room = getRideRoom(populatedRide._id);
+      
+      // Emit ride:status:updated
+      io.to(room).emit('ride:status:updated', payload);
+      
+      // Emit ride:state
+      // Room broadcast reaches the driver too, so it carries no start PIN;
+      // rider screens keep the PIN they already hold when a payload lacks one.
+      const statePayload = serializeRideRealtime(populatedRide);
+      io.to(room).emit('ride:state', statePayload);
+      
+      // Sync to Firebase/Realtime DB
+      const { mirrorRideRealtimeState } = await import('../../services/rideRealtimeSyncService.js');
+      mirrorRideRealtimeState(statePayload).catch(() => {});
+    }
+  } catch (socketError) {
+    console.error('Failed to emit status update socket event from controller:', socketError);
+  }
+
+  // The socket path clears the live route buffer on completion; the REST path
+  // never did, so a driver who finished over REST kept streaming the old route.
+  if (nextStatus === RIDE_LIVE_STATUS.COMPLETED) {
+    clearDriverRoute(req.auth.sub);
+  }
+
+  // Ride completion settles commission/earnings into the driver's wallet
+  // (settleCompletedRideWallet), but nothing ever told the driver it happened.
+  // A cash ride's commission deduction can push the wallet below the minimum
+  // balance and flip wallet.isBlocked to true server-side, silently dropping
+  // the driver from dispatch with no client-visible signal. Emit the same
+  // driver:wallet:updated event other wallet-affecting flows already use so
+  // DriverHome's wallet banner and low-balance modal pick it up immediately.
+  const walletUpdate = ride?.$locals?.walletUpdate;
+  if (walletUpdate?.transaction) {
+    const { transaction, wallet } = walletUpdate;
+    const isCommissionDeduction = transaction.type === 'commission_deduction';
+    const title = isCommissionDeduction ? 'Commission deducted' : 'Ride earning credited';
+    const amountLabel = Math.abs(Number(transaction.amount || 0)).toFixed(2);
+    const bodyParts = [
+      isCommissionDeduction
+        ? `Rs ${amountLabel} commission deducted for this ride.`
+        : `Rs ${amountLabel} credited for this ride.`,
+    ];
+
+    if (wallet?.isBlocked) {
+      bodyParts.push(`Wallet balance is Rs ${Number(wallet.balance || 0).toFixed(2)}, below the Rs ${Number(wallet.minimumBalanceForOrders || 0).toFixed(2)} minimum. Top up to keep receiving ride requests.`);
+    }
+
+    emitToDriver(ride.driverId, 'driver:wallet:updated', {
+      wallet,
+      transaction,
+      notification: {
+        id: `ride-complete-wallet-${String(ride._id)}`,
+        title,
+        body: bodyParts.join(' '),
+        sentAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    data: serializeRideRealtime(ride),
+  });
+};
+
+export const submitRideReview = async (req, res) => {
+  if (req.auth.role !== 'user') {
+    throw new ApiError(403, 'Only users can rate completed rides');
+  }
+
+  const ride = await submitRideFeedback({
+    rideId: req.params.rideId,
+    userId: req.auth.sub,
+    rating: req.body.rating,
+    comment: req.body.comment,
+    tipAmount: req.body.tipAmount,
+  });
+
+  res.json({
+    success: true,
+    data: serializeRideRealtime(ride, { viewerRole: 'user' }),
+  });
+};
+
+export const createRazorpayRideCompletionOrder = async (req, res) => {
+  const rideId = String(req.params.rideId || '').trim();
+  const { tipAmount } = await validateRideCompletionFeedback({
+    rating: Number(req.body?.rating || 0),
+    tipAmount: req.body?.tipAmount,
+  });
+
+  const ride = await loadCompletedRideForUser(rideId, req.auth.sub);
+
+  if (ride.feedback?.submittedAt) {
+    throw new ApiError(409, 'Feedback already submitted for this ride');
+  }
+
+  const { keyId, keySecret } = await resolveRazorpayCredentials();
+  const paymentAmounts = buildCompletionAmounts(ride, tipAmount);
+
+  if (paymentAmounts.totalCharge <= 0) {
+    throw new ApiError(400, 'No payable amount remains for this ride');
+  }
+
+  const compactRideId = rideId.replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'ride';
+  const compactUserId = String(req.auth?.sub || '').replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'usr';
+  const receipt = `uride_${compactUserId}_${compactRideId}_${Date.now().toString(36)}`;
+
+  const order = await razorpayRequest({
+    method: 'POST',
+    path: '/orders',
+    body: {
+      amount: Math.round(paymentAmounts.totalCharge * 100),
+      currency: 'INR',
+      receipt,
+      notes: {
+        rideId,
+        userId: String(req.auth.sub),
+        driverId: String(ride.driverId),
+        fareDue: String(paymentAmounts.fareDue),
+        tipAmount: String(tipAmount),
+        source: 'ride_completion',
+      },
+    },
+    keyId,
+    keySecret,
+  });
+
+  res.status(201).json({
+    success: true,
+    data: {
+      keyId,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      fare: paymentAmounts.fare,
+      fareDue: paymentAmounts.fareDue,
+      tipAmount: paymentAmounts.tipAmount,
+      totalCharge: paymentAmounts.totalCharge,
+    },
+  });
+};
+
+export const verifyRazorpayRideCompletion = async (req, res) => {
+  const rideId = String(req.params.rideId || '').trim();
+  const rating = Number(req.body?.rating || 0);
+  const comment = String(req.body?.comment || '');
+  const { tipAmount } = await validateRideCompletionFeedback({
+    rating,
+    tipAmount: req.body?.tipAmount,
+  });
+  const orderId = String(req.body?.razorpay_order_id || '');
+  const paymentId = String(req.body?.razorpay_payment_id || '');
+  const signature = String(req.body?.razorpay_signature || '');
+
+  if (!orderId || !paymentId || !signature) {
+    throw new ApiError(400, 'Payment verification fields are required');
+  }
+
+  const ride = await loadCompletedRideForUser(rideId, req.auth.sub);
+
+  if (
+    ride.feedback?.submittedAt &&
+    (String(ride.driverPaymentCollection?.providerPaymentId || '') === paymentId || String(ride.feedback?.tipPaymentId || '') === paymentId)
+  ) {
+    return res.json({
+      success: true,
+      data: await getRideDetails(rideId),
+    });
+  }
+
+  const { keyId, keySecret } = await resolveRazorpayCredentials();
+  // Shared constant-time check; the secret stays taxi's own admin-configured
+  // gateway credential rather than the platform env key.
+  if (!verifyPaymentSignature({ orderId, paymentId, signature, secret: keySecret })) {
+    throw new ApiError(400, 'Invalid payment signature');
+  }
+
+  const order = await razorpayRequest({
+    method: 'GET',
+    path: `/orders/${encodeURIComponent(orderId)}`,
+    keyId,
+    keySecret,
+  });
+
+  /*
+   * The order must be this rider's payment for this ride. Only the amount was
+   * compared before, so a wallet top-up order or another ride's order of the
+   * same amount could be presented here and spent twice.
+   */
+  if (
+    String(order?.notes?.source || '') !== 'ride_completion' ||
+    String(order?.notes?.rideId || '') !== rideId ||
+    String(order?.notes?.userId || '') !== String(req.auth.sub)
+  ) {
+    throw new ApiError(400, 'This payment is not for this ride');
+  }
+
+  const paymentAmounts = buildCompletionAmounts(ride, tipAmount);
+  const verifiedTotalCharge = roundMoney(Number(order?.amount || 0) / 100);
+  if (verifiedTotalCharge <= 0) {
+    throw new ApiError(400, 'Invalid order amount');
+  }
+
+  if (Math.abs(verifiedTotalCharge - paymentAmounts.totalCharge) > 0.001) {
+    throw new ApiError(400, 'Verified payment amount does not match the payable ride total');
+  }
+
+  const existingWalletCredit = await WalletTransaction.findOne({
+    driverId: ride.driverId,
+    'metadata.providerPaymentId': paymentId,
+  })
+    .select('_id')
+    .lean();
+
+  if (
+    existingWalletCredit &&
+    String(ride.driverPaymentCollection?.providerPaymentId || '') !== paymentId &&
+    String(ride.feedback?.tipPaymentId || '') !== paymentId
+  ) {
+    throw new ApiError(409, 'This ride completion payment was already processed');
+  }
+
+  const claimOwner = { purpose: `ride_completion:${rideId}`, ownerRole: 'user', ownerId: String(req.auth.sub) };
+  const claim = await withPaymentClaim(
+    { key: paymentClaimKey('razorpay', paymentId), ...claimOwner },
+    async () => {
+      const session = await mongoose.startSession();
+
+      try {
+        session.startTransaction();
+
+        const liveRide = await loadCompletedRideForUser(rideId, req.auth.sub, session);
+        const result = await finalizeRideCompletion({
+          ride: liveRide,
+          userId: req.auth.sub,
+          rating,
+          comment,
+          tipAmount,
+          paymentSource: 'ride_completion_razorpay',
+          paymentRecord: {
+            provider: 'razorpay',
+            providerId: paymentId,
+            providerOrderId: orderId,
+            providerPaymentId: paymentId,
+            providerMode: 'razorpay_order',
+            source: 'ride_completion_razorpay',
+            currency: order.currency || 'INR',
+            paidAt: new Date(),
+          },
+          session,
+        });
+
+        await session.commitTransaction();
+        return { result, driverId: liveRide.driverId };
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    },
+  );
+
+  if (!claim.claimed) {
+    // A retry of this same payment for this ride; anything else is a replay.
+    assertClaimIsOwn(claim.existing, claimOwner);
+    res.json({
+      success: true,
+      data: await getRideDetails(rideId),
+    });
+    return;
+  }
+
+  const { result, driverId: paidDriverId } = claim.result;
+
+  if (result.walletResult?.transaction) {
+    emitToDriver(paidDriverId, 'driver:wallet:updated', {
+      wallet: result.walletResult.wallet,
+      transaction: result.walletResult.transaction,
+      notification: {
+        id: `ride-payment-${paymentId}`,
+        title: 'Payment received',
+        body: `Rs ${paymentAmounts.totalCharge.toFixed(2)} received from rider for completed ride.`,
+        sentAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    data: result.ride,
+  });
+};
+
+export const payRideCompletionWithWallet = async (req, res) => {
+  const rideId = String(req.params.rideId || '').trim();
+  const rating = Number(req.body?.rating || 0);
+  const comment = String(req.body?.comment || '');
+  const { tipAmount } = await validateRideCompletionFeedback({
+    rating,
+    tipAmount: req.body?.tipAmount,
+  });
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const ride = await loadCompletedRideForUser(rideId, req.auth.sub, session);
+    const paymentAmounts = buildCompletionAmounts(ride, tipAmount);
+
+    if (paymentAmounts.totalCharge <= 0) {
+      throw new ApiError(400, 'No payable amount remains for this ride');
+    }
+
+    await ensureUserWallet(req.auth.sub, session);
+    const userWallet = await UserWallet.findOne({ userId: req.auth.sub }).session(session);
+    if (!userWallet) {
+      throw new ApiError(404, 'User wallet not found');
+    }
+
+    if (Number(userWallet.balance || 0) < paymentAmounts.totalCharge) {
+      throw new ApiError(400, 'Insufficient wallet balance');
+    }
+
+    const transferId = crypto.randomUUID();
+    userWallet.balance = roundMoney(Number(userWallet.balance || 0) - paymentAmounts.totalCharge);
+    userWallet.transactions.push({
+      kind: 'debit',
+      amount: paymentAmounts.totalCharge,
+      title: `Ride payment for ${rideId.slice(-6)}${tipAmount > 0 ? ' with tip' : ''}`,
+      provider: 'ride_completion_wallet',
+      providerPaymentId: transferId,
+    });
+    userWallet.transactions = userWallet.transactions.slice(-50);
+    await userWallet.save({ session });
+
+    const result = await finalizeRideCompletion({
+      ride,
+      userId: req.auth.sub,
+      rating,
+      comment,
+      tipAmount,
+      paymentSource: 'ride_completion_wallet',
+      paymentRecord: {
+        provider: 'wallet',
+        providerId: transferId,
+        providerOrderId: '',
+        providerPaymentId: transferId,
+        providerMode: 'wallet_internal',
+        source: 'ride_completion_wallet',
+        currency: 'INR',
+        paidAt: new Date(),
+      },
+      session,
+    });
+
+    await session.commitTransaction();
+
+    if (result.walletResult?.transaction) {
+      emitToDriver(ride.driverId, 'driver:wallet:updated', {
+        wallet: result.walletResult.wallet,
+        transaction: result.walletResult.transaction,
+        notification: {
+          id: `ride-wallet-${transferId}`,
+          title: 'Payment received',
+          body: `Rs ${paymentAmounts.totalCharge.toFixed(2)} received from rider wallet for completed ride.`,
+          sentAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: result.ride,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+export const createRazorpayRideTipOrder = async (req, res) => {
+  const rideId = String(req.params.rideId || '').trim();
+  const tipAmount = normalizeMoneyAmount(req.body?.tipAmount, 'tipAmount');
+  const tipSettings = await getTipSettings();
+  const tipsEnabled = String(tipSettings.enable_tips || '1') === '1';
+  const minimumTipAmount = Number(tipSettings.min_tip_amount || 0);
+
+  if (!tipsEnabled) {
+    throw new ApiError(403, 'Tips are currently disabled');
+  }
+
+  if (minimumTipAmount > 0 && tipAmount < minimumTipAmount) {
+    throw new ApiError(400, `tipAmount must be at least ${minimumTipAmount}`);
+  }
+
+  const ride = await Ride.findOne({
+    _id: rideId,
+    userId: req.auth.sub,
+    status: 'completed',
+  }).select('_id driverId feedback');
+
+  if (!ride) {
+    throw new ApiError(404, 'Completed ride not found');
+  }
+
+  if (!ride.driverId) {
+    throw new ApiError(409, 'Ride has no assigned driver');
+  }
+
+  if (ride.feedback?.submittedAt) {
+    throw new ApiError(409, 'Feedback already submitted for this ride');
+  }
+
+  const { keyId, keySecret } = await resolveRazorpayCredentials();
+  const amountPaise = Math.round(tipAmount * 100);
+  const compactRideId = rideId.replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'ride';
+  const compactUserId = String(req.auth?.sub || '').replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'usr';
+  const receipt = `utip_${compactUserId}_${compactRideId}_${Date.now().toString(36)}`;
+
+  const order = await razorpayRequest({
+    method: 'POST',
+    path: '/orders',
+    body: {
+      amount: amountPaise,
+      currency: 'INR',
+      receipt,
+      notes: {
+        rideId,
+        userId: String(req.auth.sub),
+        driverId: String(ride.driverId),
+        kind: 'ride_tip',
+      },
+    },
+    keyId,
+    keySecret,
+  });
+
+  res.status(201).json({
+    success: true,
+    data: {
+      keyId,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      tipAmount,
+    },
+  });
+};
+
+export const verifyRazorpayRideTip = async (req, res) => {
+  const rideId = String(req.params.rideId || '').trim();
+  const rating = Number(req.body?.rating || 0);
+  const comment = String(req.body?.comment || '');
+  const tipAmount = normalizeMoneyAmount(req.body?.tipAmount, 'tipAmount');
+  const orderId = String(req.body?.razorpay_order_id || '');
+  const paymentId = String(req.body?.razorpay_payment_id || '');
+  const signature = String(req.body?.razorpay_signature || '');
+
+  if (!orderId || !paymentId || !signature) {
+    throw new ApiError(400, 'Payment verification fields are required');
+  }
+
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    throw new ApiError(400, 'rating must be between 1 and 5');
+  }
+
+  const tipSettings = await getTipSettings();
+  const tipsEnabled = String(tipSettings.enable_tips || '1') === '1';
+  const minimumTipAmount = Number(tipSettings.min_tip_amount || 0);
+
+  if (!tipsEnabled) {
+    throw new ApiError(403, 'Tips are currently disabled');
+  }
+
+  if (minimumTipAmount > 0 && tipAmount < minimumTipAmount) {
+    throw new ApiError(400, `tipAmount must be at least ${minimumTipAmount}`);
+  }
+
+  const ride = await Ride.findOne({
+    _id: rideId,
+    userId: req.auth.sub,
+    status: 'completed',
+  });
+
+  if (!ride) {
+    throw new ApiError(404, 'Completed ride not found');
+  }
+
+  if (!ride.driverId) {
+    throw new ApiError(409, 'Ride has no assigned driver');
+  }
+
+  if (ride.feedback?.submittedAt && String(ride.feedback?.tipPaymentId || '') === paymentId) {
+    const existingRide = await getRideDetails(rideId);
+    res.json({
+      success: true,
+      data: existingRide,
+    });
+    return;
+  }
+
+  if (ride.feedback?.submittedAt) {
+    throw new ApiError(409, 'Feedback already submitted for this ride');
+  }
+
+  const { keyId, keySecret } = await resolveRazorpayCredentials();
+  // Shared constant-time check; the secret stays taxi's own admin-configured
+  // gateway credential rather than the platform env key.
+  if (!verifyPaymentSignature({ orderId, paymentId, signature, secret: keySecret })) {
+    throw new ApiError(400, 'Invalid payment signature');
+  }
+
+  const order = await razorpayRequest({
+    method: 'GET',
+    path: `/orders/${encodeURIComponent(orderId)}`,
+    keyId,
+    keySecret,
+  });
+
+  // Must be this rider's tip order for this ride (see verifyRazorpayRideCompletion).
+  if (
+    String(order?.notes?.kind || '') !== 'ride_tip' ||
+    String(order?.notes?.rideId || '') !== rideId ||
+    String(order?.notes?.userId || '') !== String(req.auth.sub)
+  ) {
+    throw new ApiError(400, 'This payment is not for this ride');
+  }
+
+  const amountPaise = Number(order?.amount);
+  if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+    throw new ApiError(400, 'Invalid order amount');
+  }
+
+  const verifiedTipAmount = Math.round(amountPaise) / 100;
+  if (Math.abs(verifiedTipAmount - tipAmount) > 0.001) {
+    throw new ApiError(400, 'Verified tip amount does not match selected tip');
+  }
+
+  const driver = await Driver.findById(ride.driverId);
+  if (!driver) {
+    throw new ApiError(404, 'Driver not found');
+  }
+
+  const existingWalletCredit = await WalletTransaction.findOne({
+    driverId: ride.driverId,
+    'metadata.providerPaymentId': paymentId,
+  })
+    .select('_id')
+    .lean();
+
+  if (existingWalletCredit && String(ride.feedback?.tipPaymentId || '') !== paymentId) {
+    throw new ApiError(409, 'This tip payment was already processed');
+  }
+
+  /*
+   * Two concurrent verify calls for the same tip (double-tap, client retry
+   * on timeout) both read feedback.submittedAt as empty above. Only one may
+   * actually claim the "submit feedback" slot — this atomic update is the
+   * serialization point, so the loser is treated as a replay instead of
+   * crediting the driver's wallet a second time for one real payment.
+   */
+  const claimedRide = await Ride.findOneAndUpdate(
+    {
+      _id: ride._id,
+      'feedback.submittedAt': { $exists: false },
+    },
+    {
+      $set: {
+        feedback: {
+          rating,
+          comment: comment.trim(),
+          tipAmount: verifiedTipAmount,
+          tipPaymentId: paymentId,
+          tipOrderId: orderId,
+          tipPaidAt: new Date(),
+          submittedAt: new Date(),
+        },
+      },
+    },
+    { new: true },
+  );
+
+  if (!claimedRide) {
+    const settledRide = await Ride.findById(ride._id).select('feedback').lean();
+    if (String(settledRide?.feedback?.tipPaymentId || '') === paymentId) {
+      res.json({ success: true, data: await getRideDetails(rideId) });
+      return;
+    }
+    throw new ApiError(409, 'Feedback already submitted for this ride');
+  }
+
+  const walletResult = existingWalletCredit
+    ? {
+        wallet: await serializeDriverWallet(driver),
+        transaction: null,
+      }
+    : await applyDriverWalletAdjustment({
+        driverId: ride.driverId,
+        rideId: ride._id,
+        amount: verifiedTipAmount,
+        type: 'adjustment',
+        description: 'Ride tip credited from rider',
+        metadata: {
+          source: 'ride_tip',
+          provider: 'razorpay',
+          providerOrderId: orderId,
+          providerPaymentId: paymentId,
+          rideId: String(ride._id),
+          userId: String(req.auth.sub),
+        },
+      });
+
+  driver.ratingCount = Number(driver.ratingCount || 0) + 1;
+  driver.totalRatingScore = Number(driver.totalRatingScore || 0) + rating;
+  driver.rating = Number((driver.totalRatingScore / driver.ratingCount).toFixed(1));
+
+  await driver.save();
+
+  if (walletResult.transaction) {
+    emitToDriver(ride.driverId, 'driver:wallet:updated', {
+      wallet: walletResult.wallet,
+      transaction: walletResult.transaction,
+      notification: {
+        id: `ride-tip-${paymentId}`,
+        title: 'Payment received',
+        body: `Rs ${verifiedTipAmount.toFixed(2)} tip received from rider.`,
+        sentAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  const populatedRide = await getRideDetails(ride._id);
+
+  res.json({
+    success: true,
+    data: populatedRide,
+  });
+};
+
+export const getRideAppTipSettings = async (_req, res) => {
+  const tipSettings = await getTipSettings();
+
+  res.json({
+    success: true,
+    data: {
+      settings: tipSettings,
+    },
+  });
+};
+
+export const cancelRide = async (req, res) => {
+  const ride = await cancelRideByUser({
+    rideId: req.params.rideId,
+    userId: req.auth.sub,
+  });
+
+  if (!ride) {
+    throw new ApiError(404, 'Ride not found');
+  }
+
+  if (ride.driverId) {
+    clearDriverRoute(ride.driverId);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      rideId: String(ride._id),
+      status: ride.status,
+      liveStatus: ride.liveStatus,
+    },
+  });
+};
+
+export const listAvailableDrivers = async (req, res) => {
+  const { vehicleTypeId, lat, lng, maxDistance, limit = 30, service_location_id, transport_type } = req.query;
+  const latitude = Number(lat);
+  const longitude = Number(lng);
+  const distance = Number(maxDistance);
+
+  if (!vehicleTypeId) {
+    throw new ApiError(400, 'vehicleTypeId is required');
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(vehicleTypeId)) {
+    throw new ApiError(400, 'vehicleTypeId is invalid');
+  }
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new ApiError(400, 'lat and lng are required');
+  }
+
+  const normalizedServiceLocationId =
+    service_location_id && mongoose.Types.ObjectId.isValid(service_location_id)
+      ? new mongoose.Types.ObjectId(service_location_id)
+      : null;
+
+  const matchOptions = {
+    maxDistance: Number.isFinite(distance) && distance > 0 ? Math.min(distance, 25000) : 25000,
+    limit: Math.min(Number(limit) || 30, 50),
+    vehicleTypeId,
+  };
+
+  let matchResult = await matchDrivers([longitude, latitude], {
+    ...matchOptions,
+    serviceLocationId: normalizedServiceLocationId,
+  });
+
+  if (!matchResult.drivers.length && normalizedServiceLocationId) {
+    matchResult = await matchDrivers([longitude, latitude], {
+      ...matchOptions,
+      serviceLocationId: null,
+    });
+  }
+
+  const { drivers } = matchResult;
+
+  const enrichedDrivers = drivers.map((driver) => {
+    const distanceMeters = calculateDistanceMeters([longitude, latitude], driver.location?.coordinates || []);
+    const etaMinutes = estimateEtaMinutes(distanceMeters);
+
+    /*
+     * This route is public (the pre-booking map), so it shows only "a car of
+     * this type is about here": no name or plate, and the position rounded to
+     * ~100 m. It used to return each online driver's exact live GPS with
+     * their name and number plate to anyone who asked. Distance/ETA above are
+     * still computed from the exact position.
+     */
+    const exactCoordinates = Array.isArray(driver.location?.coordinates) ? driver.location.coordinates : [];
+    const roundedCoordinates = exactCoordinates.map((value) => Math.round(Number(value) * 1000) / 1000);
+
+    return {
+      id: driver._id,
+      vehicleTypeId: driver.vehicleTypeId,
+      vehicleType: driver.vehicleType,
+      vehicleIconType: driver.vehicleIconType,
+      vehicleColor: driver.vehicleColor,
+      vehicleMake: driver.vehicleMake,
+      vehicleModel: driver.vehicleModel,
+      rating: driver.rating,
+      location: exactCoordinates.length
+        ? { type: driver.location?.type || 'Point', coordinates: roundedCoordinates }
+        : driver.location,
+      distanceMeters,
+      etaMinutes,
+    };
+  });
+
+  const closestDriver = enrichedDrivers[0] || null;
+  const { allowedPaymentMethods } = await getAllowedRidePaymentMethodsForPricing({
+    serviceLocationId: normalizedServiceLocationId,
+    transportType: transport_type || 'taxi',
+    vehicleTypeId,
+  });
+
+  res.json({
+    success: true,
+    data: {
+      totalDrivers: enrichedDrivers.length,
+      closestDriverDistanceMeters: closestDriver?.distanceMeters ?? null,
+      closestDriverEtaMinutes: closestDriver?.etaMinutes ?? null,
+      allowedPaymentMethods,
+      drivers: enrichedDrivers,
+    },
+  });
+};
+

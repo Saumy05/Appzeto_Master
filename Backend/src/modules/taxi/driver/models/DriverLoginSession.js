@@ -1,0 +1,49 @@
+import mongoose from 'mongoose';
+
+const driverLoginSessionSchema = new mongoose.Schema(
+  {
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      trim: true,
+    },
+    driverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TaxiDriver',
+      required: true,
+    },
+    accountRole: {
+      type: String,
+      enum: ['driver'],
+      default: 'driver',
+      required: true,
+    },
+    // OTP codes now live in core/otp under the 'taxi-driver' scope. These two
+    // fields remain only so old rows still load; nothing writes them.
+    otpHash: {
+      type: String,
+      select: false,
+    },
+    otpExpiresAt: {
+      type: Date,
+      index: true,
+    },
+    verifiedAt: {
+      type: Date,
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
+driverLoginSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const DriverLoginSession =
+  mongoose.models.TaxiDriverLoginSession ||
+  mongoose.model('TaxiDriverLoginSession', driverLoginSessionSchema);

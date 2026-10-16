@@ -1,0 +1,671 @@
+import { asyncHandler } from "../../../../utils/asyncHandler.js";
+import * as adminService from "../services/adminService.js";
+import ExcelJS from 'exceljs';
+import { getPublicActivePaymentGateway } from '../../services/paymentGatewayService.js';
+import { getOrLoadCachedValue } from '../../../../utils/cache.js';
+
+const PUBLIC_BOOTSTRAP_CACHE_TTL_MS = 30_000;
+
+const ok = (res, data, extra = {}) =>
+  res.json({ success: true, data, ...extra });
+
+const sendFile = async (res, filename, reportData, format) => {
+  const { headers, rows } = reportData;
+
+  if (format === 'csv') {
+    const content = adminService.csvFromRows(headers, rows);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}.csv"`);
+    res.send(content);
+  } else {
+    // Generate real Excel file
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Report');
+
+    // Add headers
+    worksheet.addRow(headers.map(h => String(h).toUpperCase()));
+    
+    // Add rows
+    rows.forEach(row => {
+      worksheet.addRow(headers.map(h => row[h]));
+    });
+
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}.xlsx"`);
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+};
+
+export const getAdminStatus = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getAdminModuleInfo()),
+);
+export const loginAdmin = asyncHandler(async (req, res) =>
+  ok(res, await adminService.loginAdmin(req.body)),
+);
+export const forgotPassword = asyncHandler(async (req, res) =>
+  ok(res, await adminService.forgotPassword(req.body.email)),
+);
+export const verifyResetOtp = asyncHandler(async (req, res) =>
+  ok(res, await adminService.verifyResetOtp(req.body)),
+);
+export const resetPassword = asyncHandler(async (req, res) =>
+  ok(res, await adminService.resetPassword(req.body)),
+);
+export const getAdmins = asyncHandler(async (req, res) =>
+  ok(res, { results: await adminService.listAdmins(req.auth?.admin) }),
+);
+export const getAdminPermissions = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listAdminPermissions() }),
+);
+export const createAdminAccount = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createAdminAccount(req.auth?.admin, req.body)),
+);
+export const updateAdminAccount = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateAdminAccount(req.auth?.admin, req.params.id, req.body)),
+);
+export const deleteAdminAccount = asyncHandler(async (req, res) => {
+  await adminService.deleteAdminAccount(req.auth?.admin, req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getUsers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listUsers(req.query)),
+);
+export const bulkImportUsers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.bulkImportUsers(req.body)),
+);
+export const bulkImportDrivers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.bulkImportDrivers(req.body)),
+);
+export const createUser = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createUser(req.body)),
+);
+export const updateUser = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateUser(req.params.id, req.body)),
+);
+export const getUser = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getUserById(req.params.id)),
+);
+export const deleteUser = asyncHandler(async (req, res) => {
+  await adminService.deleteUser(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getDeletedUsers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDeletedUsers(req.query)),
+);
+
+export const restoreDeletedUser = asyncHandler(async (req, res) =>
+  ok(res, await adminService.restoreDeletedUser(req.params.id)),
+);
+
+export const permanentlyDeleteDeletedUser = asyncHandler(async (req, res) => {
+  await adminService.permanentlyDeleteDeletedUser(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getUserDeletionRequests = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listUserDeletionRequests(req.query)),
+);
+
+export const approveUserDeletionRequest = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.approveUserDeletionRequest(req.params.id, req.auth?.sub),
+  ),
+);
+
+export const rejectUserDeletionRequest = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.rejectUserDeletionRequest(
+      req.params.id,
+      req.body,
+      req.auth?.sub,
+    ),
+  ),
+);
+
+export const getUserRequests = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listUserRequests(req.params.id)),
+);
+
+export const getUserWalletHistory = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listUserWalletHistory(req.params.id)),
+);
+
+export const adjustUserWallet = asyncHandler(async (req, res) =>
+  ok(res, await adminService.adjustUserWallet(req.params.id, req.body)),
+);
+
+export const getDrivers = asyncHandler(async (req, res) => {
+  ok(res, await adminService.listDrivers(req.query, req.auth?.admin));
+});
+
+export const getDriverRatings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDriverRatings(req.query)),
+);
+
+export const getDriverRatingDetail = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getDriverRatingDetail(req.params.id)),
+);
+
+export const listDriverWalletHistory = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDriverWalletHistory(req.params.id)),
+);
+
+export const getNegativeBalanceDrivers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listNegativeBalanceDrivers(req.query)),
+);
+
+export const getDriverWithdrawalSummaries = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDriverWithdrawalSummaries(req.query)),
+);
+
+export const getDriverWithdrawals = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.listDriverWithdrawals({
+      driverId: req.params.id,
+      page: req.query.page,
+      limit: req.query.limit,
+    }),
+  ),
+);
+
+export const getDriverWithdrawalContextByRequestId = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.getDriverWithdrawalContextByRequestId({
+      requestId: req.params.requestId,
+      page: req.query.page,
+      limit: req.query.limit,
+    }),
+  ),
+);
+
+export const approveDriverWithdrawalRequest = asyncHandler(async (req, res) =>
+  ok(res, await adminService.approveDriverWithdrawalRequest(req.params.requestId, req.auth?.sub)),
+);
+
+export const rejectDriverWithdrawalRequest = asyncHandler(async (req, res) =>
+  ok(res, await adminService.rejectDriverWithdrawalRequest(req.params.requestId)),
+);
+
+
+export const getDeletedDrivers = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDeletedDrivers(req.query)),
+);
+
+export const restoreDeletedDriver = asyncHandler(async (req, res) =>
+  ok(res, await adminService.restoreDeletedDriver(req.params.id)),
+);
+
+export const permanentlyDeleteDeletedDriver = asyncHandler(async (req, res) => {
+  await adminService.permanentlyDeleteDeletedDriver(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getDriverDeletionRequests = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listDriverDeletionRequests(req.query)),
+);
+
+export const approveDriverDeletionRequest = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.approveDriverDeletionRequest(req.params.id, req.auth?.sub),
+  ),
+);
+
+export const rejectDriverDeletionRequest = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.rejectDriverDeletionRequest(
+      req.params.id,
+      req.body,
+      req.auth?.sub,
+    ),
+  ),
+);
+
+export const createDriver = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createDriver(req.body, req.auth?.admin)),
+);
+export const getDriver = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getDriverById(req.params.id, req.auth?.admin)),
+);
+export const getDriverProfile = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getDriverProfile(req.params.id)),
+);
+export const updateDriver = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateDriver(req.params.id, req.body, req.auth?.admin)),
+);
+export const updateDriverPassword = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.updateDriverPassword(req.params.id, req.body.password),
+  ),
+);
+export const deleteDriver = asyncHandler(async (req, res) => {
+  await adminService.deleteDriver(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const adjustDriverWallet = asyncHandler(async (req, res) =>
+  ok(res, await adminService.adjustDriverWallet(req.params.id, req.body)),
+);
+
+export const getReferralSettings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getReferralSettings(req.params.type)),
+);
+
+export const updateReferralSettings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateReferralSettings(req.params.type, req.body)),
+);
+
+export const getReferralDashboard = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getReferralDashboard()),
+);
+
+export const getServiceLocations = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listServiceLocations(req.auth?.admin)),
+);
+export const getCountries = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listCountries() }),
+);
+export const createServiceLocation = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createServiceLocation(req.body, req.auth?.admin)),
+);
+export const updateServiceLocation = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateServiceLocation(req.params.id, req.body, req.auth?.admin)),
+);
+export const deleteServiceLocation = asyncHandler(async (req, res) => {
+  await adminService.deleteServiceLocation(req.params.id, req.auth?.admin);
+  ok(res, { deleted: true });
+});
+export const getNearbyServiceLocations = asyncHandler(async (req, res) =>
+  ok(res, {
+    results: await adminService.listNearbyServiceLocations(req.query),
+  }),
+);
+export const getRideModules = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.listRideModules()),
+);
+export const getOngoingRides = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listOngoingRides(req.query)),
+);
+export const getRideRequests = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listRideRequests(req.query)),
+);
+export const getIntercityTrips = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listIntercityTrips(req.query)),
+);
+export const deleteOngoingRide = asyncHandler(async (req, res) =>
+  ok(res, await adminService.deleteOngoingRide(req.params.id)),
+);
+export const getVehicleTypes = asyncHandler(async (req, res) =>
+  ok(res, await adminService.listVehicleTypes(req.query)),
+);
+export const getVehicleTypeCatalog = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.listVehicleCatalog()),
+);
+export const getVehicleTypeById = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getVehicleTypeById(req.params.id)),
+);
+export const getPublicVehicleTypeCatalog = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.listPublicVehicleCatalog()),
+);
+export const getVehiclePreferenceOptions = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.listVehiclePreferences()),
+);
+export const createVehicleType = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createVehicleType(req.body)),
+);
+export const updateVehicleType = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateVehicleType(req.params.id, req.body)),
+);
+export const deleteVehicleType = asyncHandler(async (req, res) => {
+  await adminService.deleteVehicleType(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getDashboardData = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getDashboardData()),
+);
+export const getOverallEarnings = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getOverallEarnings()),
+);
+export const getAdminEarnings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getAdminEarnings(req.query)),
+);
+export const getTodayEarnings = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getTodayEarnings()),
+);
+export const getCancelChart = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getCancelChart()),
+);
+export const getWithdrawals = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listWithdrawals() }),
+);
+
+export const getZones = asyncHandler(async (req, res) =>
+  ok(res, { results: await adminService.listZones(req.auth?.admin) }),
+);
+export const createZone = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createZone(req.body, req.auth?.admin)),
+);
+export const updateZone = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateZone(req.params.id, req.body, req.auth?.admin)),
+);
+export const deleteZone = asyncHandler(async (req, res) => {
+  await adminService.deleteZone(req.params.id, req.auth?.admin);
+  ok(res, { deleted: true });
+});
+export const toggleZoneStatus = asyncHandler(async (req, res) =>
+  ok(res, await adminService.toggleZoneStatus(req.params.id, req.auth?.admin)),
+);
+
+export const getSetPrices = asyncHandler(async (req, res) => {
+  const data = await adminService.listSetPrices(req.query || {}, req.auth?.admin);
+  res.json({ success: true, ...data });
+});
+export const getSetPriceById = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getSetPriceById(req.params.id, req.auth?.admin)),
+);
+export const createSetPrice = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createSetPrice(req.body, req.auth?.admin)),
+);
+export const updateSetPrice = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateSetPrice(req.params.id, req.body, req.auth?.admin)),
+);
+export const deleteSetPrice = asyncHandler(async (req, res) => {
+  await adminService.deleteSetPrice(req.params.id, req.auth?.admin);
+  ok(res, { deleted: true });
+});
+
+export const getAirports = asyncHandler(async (req, res) =>
+  ok(res, { airports: await adminService.listAirports(req.auth?.admin) }),
+);
+export const createAirport = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createAirport(req.body, req.auth?.admin)),
+);
+export const updateAirport = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateAirport(req.params.id, req.body, req.auth?.admin)),
+);
+export const deleteAirport = asyncHandler(async (req, res) => {
+  await adminService.deleteAirport(req.params.id, req.auth?.admin);
+  ok(res, { deleted: true });
+});
+
+export const getRentalPackageTypes = asyncHandler(async (_req, res) =>
+  ok(res, { rental_packages: await adminService.listRentalPackageTypes() }),
+);
+export const createRentalPackageType = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createRentalPackageType(req.body)),
+);
+export const updateRentalPackageType = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateRentalPackageType(req.params.id, req.body)),
+);
+export const deleteRentalPackageType = asyncHandler(async (req, res) => {
+  await adminService.deleteRentalPackageType(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getDriverNeededDocuments = asyncHandler(async (req, res) =>
+  ok(res, {
+    results: await adminService.listDriverNeededDocuments({
+      templateType: req.query?.template_type || 'document',
+      includeFields: String(req.query?.template_type || 'document').trim().toLowerCase() !== 'vehicle_field',
+    }),
+  }),
+);
+export const getDriverNeededDocument = asyncHandler(async (req, res) =>
+  ok(res, await adminService.getDriverNeededDocumentById(req.params.id)),
+);
+export const createDriverNeededDocument = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createDriverNeededDocument(req.body)),
+);
+export const updateDriverNeededDocument = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateDriverNeededDocument(req.params.id, req.body)),
+);
+export const deleteDriverNeededDocument = asyncHandler(async (req, res) => {
+  await adminService.deleteDriverNeededDocument(req.params.id);
+  ok(res, { deleted: true });
+});
+export const getPreferences = asyncHandler(async (_req, res) => {
+  const items = await adminService.listPreferences();
+  res.json({ success: true, paginator: { data: items }, results: items });
+});
+export const createPreference = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createPreference(req.body)),
+);
+export const updatePreferenceStatus = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updatePreferenceStatus(req.params.id, req.body)),
+);
+export const deletePreference = asyncHandler(async (req, res) => {
+  await adminService.deletePreference(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getRoles = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listRoles() }),
+);
+export const createRole = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createRole(req.body)),
+);
+export const deleteRole = asyncHandler(async (req, res) => {
+  await adminService.deleteRole(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getAppModules = asyncHandler(async (req, res) => {
+  const cacheKey = `cache:public:app_modules:${JSON.stringify(req.query || {})}`;
+  const data = await getOrLoadCachedValue(
+    cacheKey,
+    {
+      ttlMs: PUBLIC_BOOTSTRAP_CACHE_TTL_MS,
+      load: () => adminService.listAppModules(req.query),
+    },
+  );
+
+  ok(res, data);
+});
+export const createAppModule = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createAppModule(req.body)),
+);
+export const updateAppModule = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateAppModule(req.params.id, req.body)),
+);
+export const deleteAppModule = asyncHandler(async (req, res) => {
+  await adminService.deleteAppModule(req.params.id);
+  ok(res, { deleted: true });
+});
+
+export const getNotificationChannels = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listNotificationChannels() }),
+);
+export const toggleChannelPush = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.updateNotificationChannelField(
+      req.params.id,
+      "push_notification",
+      req.body.push_notification,
+    ),
+  ),
+);
+export const toggleChannelMail = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.updateNotificationChannelField(
+      req.params.id,
+      "mail",
+      req.body.mail,
+    ),
+  ),
+);
+
+export const getPaymentGateways = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listPaymentGateways() }),
+);
+export const getPaymentMethods = asyncHandler(async (_req, res) =>
+  ok(res, { results: await adminService.listPaymentMethods() }),
+);
+export const createPaymentMethod = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createPaymentMethod(req.body)),
+);
+export const updatePaymentMethod = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updatePaymentMethod(req.params.id, req.body)),
+);
+export const deletePaymentMethod = asyncHandler(async (req, res) => {
+  await adminService.deletePaymentMethod(req.params.id);
+  ok(res, { deleted: true });
+});
+export const getPaymentSettings = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getPaymentSettings()),
+);
+export const updatePaymentSettings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updatePaymentSettings(req.body)),
+);
+
+export const getSmsSettings = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.getSMSSettings()),
+);
+export const updateSmsSettings = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateSMSSettings(req.body)),
+);
+
+export const getFirebaseSettings = asyncHandler(async (_req, res) =>
+  ok(res, { settings: await adminService.getFirebaseSettings() }),
+);
+export const updateFirebaseSettings = asyncHandler(async (req, res) =>
+  ok(res, { settings: await adminService.updateFirebaseSettings(req.body) }),
+);
+
+export const getMapSettings = asyncHandler(async (_req, res) =>
+  ok(res, { settings: await adminService.getMapSettings() }),
+);
+export const updateMapSettings = asyncHandler(async (req, res) =>
+  ok(res, { settings: await adminService.updateMapSettings(req.body) }),
+);
+
+export const getMailSettings = asyncHandler(async (_req, res) =>
+  ok(res, { settings: await adminService.getMailSettings() }),
+);
+export const updateMailSettings = asyncHandler(async (req, res) =>
+  ok(res, { settings: await adminService.updateMailSettings(req.body) }),
+);
+
+export const getUserOnboarding = asyncHandler(async (_req, res) =>
+  res.json({
+    success: true,
+    results: await adminService.listOnboardingScreens("user"),
+  }),
+);
+export const getDriverOnboarding = asyncHandler(async (_req, res) =>
+  res.json({
+    success: true,
+    results: await adminService.listOnboardingScreens("driver"),
+  }),
+);
+export const createOnboardingScreen = asyncHandler(async (req, res) =>
+  ok(res, await adminService.createOnboardingScreen(req.body)),
+);
+export const updateOnboardingScreen = asyncHandler(async (req, res) =>
+  ok(res, await adminService.updateOnboardingScreen(req.params.id, req.body)),
+);
+export const deleteOnboardingScreen = asyncHandler(async (req, res) =>
+  ok(res, await adminService.deleteOnboardingScreen(req.params.id)),
+);
+
+export const downloadUserReport = asyncHandler(async (req, res) => {
+  const format = req.query.file_format || 'csv';
+  const data = await adminService.buildUserReport(req.query);
+  await sendFile(res, "user-report", data, format);
+});
+
+export const downloadDriverReport = asyncHandler(async (req, res) => {
+  const format = req.query.file_format || 'csv';
+  const data = await adminService.buildDriverReport(req.query);
+  await sendFile(res, "driver-report", data, format);
+});
+
+export const downloadDriverDutyReport = asyncHandler(async (req, res) => {
+  const format = req.query.file_format || 'csv';
+  const data = await adminService.buildDriverDutyReport(req.query);
+  await sendFile(res, "driver-duty-report", data, format);
+});
+
+export const downloadFinanceReport = asyncHandler(async (req, res) => {
+  const format = req.query.file_format || 'csv';
+  const data = await adminService.buildFinanceReport(req.query);
+  await sendFile(res, "finance-report", data, format);
+});
+
+export const getGeneralSettingsCategory = asyncHandler(async (req, res) => {
+  const category = String(req.params.category || '').trim().toLowerCase();
+  const data = await getOrLoadCachedValue(
+    `cache:public:general_settings:${category}`,
+    {
+      ttlMs: PUBLIC_BOOTSTRAP_CACHE_TTL_MS,
+      load: () => adminService.getGeneralSettings(req.params.category),
+    },
+  );
+
+  ok(res, data);
+});
+export const getUserHomeManagement = asyncHandler(async (req, res) => {
+  const result = await adminService.getGeneralSettings('user-home-management');
+  ok(res, result.settings || {});
+});
+export const updateGeneralSettingsCategory = asyncHandler(async (req, res) =>
+  ok(
+    res,
+    await adminService.updateGeneralSettings(req.params.category, req.body),
+  ),
+);
+export const getTransportTypes = asyncHandler(async (_req, res) =>
+  ok(res, await adminService.listTransportTypes()),
+);
+
+export const getAppBootstrap = asyncHandler(async (_req, res) => {
+  const data = await getOrLoadCachedValue(
+    'cache:public:app_bootstrap',
+    {
+      ttlMs: PUBLIC_BOOTSTRAP_CACHE_TTL_MS,
+      load: async () => {
+        const [modules, general, transportRide, customize, paymentGateway, userHomeSettings] = await Promise.all([
+          adminService.listAppModules(),
+          adminService.getGeneralSettings('general'),
+          adminService.getGeneralSettings('transport-ride'),
+          adminService.getGeneralSettings('customize'),
+          getPublicActivePaymentGateway(),
+          adminService.getGeneralSettings('user-home-management'),
+        ]);
+
+        return {
+          modules: modules.results || modules,
+          settings: {
+            general: general.settings || {},
+            transportRide: transportRide.settings || {},
+            customization: customize.settings || {},
+            paymentGateway: paymentGateway?.activeGateway || null,
+            userHomeSettings: userHomeSettings.settings || {},
+          },
+        };
+      },
+    },
+  );
+
+  ok(res, data);
+});

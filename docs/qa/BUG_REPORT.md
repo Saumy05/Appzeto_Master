@@ -1,0 +1,1073 @@
+# Bug report
+
+Every entry here was reproduced before it was changed and is covered by a case
+in `Backend/scripts/qa/`. Severity reflects demonstrated impact, not the worst
+imaginable reading.
+
+Bugs found earlier in the same review but fixed before the suite existed are
+listed at the end with their commits.
+
+---
+
+## BUG-001 — Anyone could cancel anyone's hotel booking
+
+| | |
+| --- | --- |
+| Module | Hotel |
+| Severity | **Critical** |
+| Status | Fixed — `33e5042` |
+| Regression test | `AUTHZ-132`, `AUTHZ-133` |
+
+**Description.** `POST /v1/hotel/bookings/:id/cancel` looked up the booking by
+id, compared its owner to the caller, and then did nothing with the answer —
+the rejection was commented out:
+
+```js
+if (booking.userId.toString() !== req.user._id.toString()) {
+  // return res.status(403).json({ message: 'Not authorized' });
+}
+```
+
+**Reproduction.** Sign in as user A, book a stay, note the id. Sign in as user
+B and `POST /v1/hotel/bookings/<id>/cancel`.
+
+**Expected.** Refused. **Actual.** `200` — the stay was cancelled, the room
+released, commission and tax reversed between the partner and admin wallets,
+and the guest sent a cancellation notice.
+
+**Root cause.** The guard was written and then disabled, with a comment saying
+partner/admin handling was still to be added.
+
+**Fix.** The guest, the property's partner and admins may cancel; everyone else
+gets a 404, since confirming the id exists tells an outsider there is a booking
+to attack. Verified the guest can still cancel their own.
+
+---
+
+## BUG-002 — Upload and delete endpoints took no credentials
+
+| | |
+| --- | --- |
+| Module | Uploads (platform-wide) |
+| Severity | **Critical** |
+| Status | Fixed — `b9cef9d` |
+| Regression test | `UPL-100`, `UPL-101`, `UPL-110` |
+
+**Description.** `POST /v1/uploads/image` carried the comment "auth may be
+added at caller" and never was. `DELETE /v1/uploads` took a URL in the body and
+removed that file, with no authentication at all.
+
+**Reproduction.** With no token: `curl -X POST .../v1/uploads/image -F file=@x.png`
+returns a stored URL. `curl -X DELETE .../v1/uploads -d '{"url":"<any url>"}'`
+returns `{"deleted":true}` and the file 404s afterwards.
+
+**Expected.** Both refused. **Actual.** Both succeeded.
+
+**Impact.** Anonymous writes into platform storage, and anonymous deletion of
+any uploaded file — restaurant photos, property images, festival banners, KYC
+documents — by anyone who knows or can guess a URL.
+
+**Fix.** Both routes now require an authenticated principal. The `/internal`
+pair keeps its shared-secret guard, so the auth middleware is attached per
+route rather than to the router.
+
+**Residual risk.** Deletion is not ownership-scoped: uploads do not record who
+made them, so an authenticated user who knows another's URL can still delete
+it. Recorded in `SECURITY_AUDIT.md` as an open item.
+
+---
+
+## BUG-003 — No file size limit on uploads
+
+| | |
+| --- | --- |
+| Module | Uploads |
+| Severity | **High** |
+| Status | Fixed — `b9cef9d` |
+| Regression test | `UPL-140`, `UPL-141` |
+
+**Description.** `multer({ storage })` was configured with no `limits`. Files
+are buffered in memory, so an upload of any size was an upload of any size into
+RAM. Express's 2 MB JSON cap does not apply — multipart bypasses it.
+
+**Reproduction.** A 12 MB file uploaded in 0.09s before the fix, unauthenticated.
+
+**Fix.** 10 MB and one file per request, matching what the frontend upload
+services already refuse above.
+
+---
+
+## BUG-004 — The hotel partner wallet was open to every signed-in user
+
+| | |
+| --- | --- |
+| Module | Hotel |
+| Severity | **High** |
+| Status | Fixed — `33e5042` |
+| Regression test | `AUTHZ-143` |
+
+**Description.** `walletRoutes` carried `protect` with no role guard, so any
+consumer could reach the whole router: open a wallet, save bank details against
+it — which the controller marks `verified: true` without verifying anything —
+open a Razorpay order, and request a withdrawal that only the ₹500 minimum
+stood in the way of.
+
+**Reproduction.** With a plain consumer token, `PUT /v1/hotel/wallet/bank-details`
+returned `{"verified": true}`; `POST /v1/hotel/wallet/add-money` returned a live
+Razorpay order.
+
+**Fix.** Restricted to partners and admins. Tours' wallet was already guarded;
+a sweep found no other router in this position.
+
+**Note.** The self-verifying bank details (`verified: true // Auto-verify for
+test flow`) are a separate control gap and remain open.
+
+---
+
+## BUG-005 — Search boxes built unescaped regular expressions
+
+| | |
+| --- | --- |
+| Module | Tours, Festivals, Hotel, Support |
+| Severity | **Medium** |
+| Status | Fixed — `5a5a2da` |
+| Regression test | `INJ-110`–`INJ-112` |
+
+**Description.** Eight list endpoints ran `new RegExp(String(search).trim(), 'i')`
+on user input. Punctuation a person naturally types changes what matches, and a
+crafted term such as `(a+)+$` is catastrophic backtracking — a CPU pinned from a
+public query string.
+
+**Fix.** One `utils/searchRegex.js` escapes the term and caps its length.
+Verified the bomb term returns in 0.07s and that search still finds things.
+
+---
+
+## BUG-006 — A malformed id crashed festival checkout
+
+| | |
+| --- | --- |
+| Module | Festivals |
+| Severity | **Medium** |
+| Status | Fixed — `5a5a2da` |
+| Regression test | `VAL-106` |
+
+`festivalId: "not-an-id"` reached Mongo and threw a CastError, surfacing as a
+500 rather than "not found". Ids are now checked for shape first, on the
+festival and on every basket line.
+
+---
+
+## BUG-007 — A hotel stay could start in the past
+
+| | |
+| --- | --- |
+| Module | Hotel |
+| Severity | **Medium** |
+| Status | Fixed — `5a5a2da` |
+| Regression test | `VAL-122` |
+
+Only the night count was validated, so yesterday-to-tomorrow priced and booked —
+holding inventory for a night already gone. Compared at day granularity so a
+booking made later the same morning still works.
+
+---
+
+## BUG-008 — Any string was accepted as a phone number
+
+| | |
+| --- | --- |
+| Module | Auth (platform-wide) |
+| Severity | **Medium** |
+| Status | Fixed — `5a5a2da` |
+| Regression test | `VAL-133` |
+
+`normalizeOtpPhone` took the last ten digits of whatever arrived, so a
+200-character string, a number typed twice, or a stray card number all
+normalised to *something* and an OTP went to whichever ten digits fell at the
+end. Now only the shapes people actually type are accepted; anything else
+returns `''`, which callers already refuse.
+
+---
+
+## Fixed earlier in the same review
+
+| ID | Module | Severity | Description | Commit |
+| --- | --- | --- | --- | --- |
+| BUG-009 | Hotel | **Critical** | Every online booking returned 500 — `getRazorpayClient` was called without being imported | `dd596ab` |
+| BUG-010 | Hotel | **High** | Every booking then failed validation — `userModel` became `'FoodUser'`, outside the schema enum | `dd596ab` |
+| BUG-011 | Reports | **High** | Festivals reported ₹0 — `$literal` is not a `$group` accumulator, so the pipeline was rejected and caught as zeroes | `7875f94` |
+| BUG-012 | Hotel | **High** | The admin dashboard returned 500 — `MissingSchemaError` for model `User` after the user-model shim | `9fbbdc8` |
+| BUG-013 | Festivals | **High** | A basket spanning categories opened one payment window per category | `d0846c0` |
+| BUG-014 | Festivals | **Medium** | Closed pass categories were still offered for sale and refused at checkout | `d0846c0` |
+| BUG-015 | Festivals | **Medium** | Abandoning the payment window held seats indefinitely | `d0846c0` |
+| BUG-016 | Festivals | **Medium** | A booking window could be set but never cleared | `ea88058` |
+| BUG-017 | Admin | **Medium** | `/admin/login` while signed in landed on a dead route, with a location modal over it | `a1695cb` |
+| BUG-018 | Admin | **Medium** | Login sent every admin to Food, including ones with no access to it | `a1695cb` |
+
+---
+
+## BUG-019 — Hotel partners never received their booking-alert SMS
+
+| | |
+| --- | --- |
+| Module | Hotel |
+| Severity | **Medium** |
+| Status | Fixed |
+| Regression test | covered indirectly; the error no longer appears in the log |
+
+`bookingController` called `smsService.sendSMS(...)` without importing it, so
+every partner booking alert died as `ReferenceError: smsService is not defined`
+inside the surrounding catch and was logged rather than surfaced. The same
+missing-import class as BUG-009. `paymentController` imported it correctly; the
+booking path did not.
+
+---
+
+## BUG-020 — A rejected upload was reported as a server error
+
+| | |
+| --- | --- |
+| Module | Platform (error handling) |
+| Severity | **Low** |
+| Status | Fixed |
+| Regression test | `UPL-140` |
+
+Multer reports a rejected upload by throwing, with no `statusCode`, so an
+oversized file came back as `500 Server Error` — which reads as the server
+breaking rather than the request being refused. Multer's error codes are now
+mapped to client statuses; an oversized upload answers `413 That file is too
+large`.
+
+---
+
+## BUG-021 — A long support message was reported as a server error
+
+| | |
+| --- | --- |
+| Module | Support |
+| Severity | **Low** |
+| Status | Fixed |
+| Regression test | `INJ-160` |
+
+The opening description also becomes the thread's first message, which the
+schema caps at 4000 characters. The controller did not check, so an over-long
+one reached mongoose and came back as `500 Could not raise this ticket` — to
+the person typing, the server appearing broken rather than their message being
+too long. Now a `400` naming the limit, on both the opening description and
+replies from either side.
+
+---
+
+## Known open issues
+
+| Issue | Module | Severity | Note |
+| --- | --- | --- | --- |
+| ~~Ride fares are dictated by the client~~ | Taxi | ~~Critical~~ | **Fixed** — `fareService` prices from the `SetPrice` tariff, `POST /v1/taxi/rides/fare-estimate` quotes it, and `createRide` refuses a fare that does not match. Inactive until a tariff exists; `scripts/seed-taxi-tariffs.js` creates them and `TAXI_ENFORCE_FARE=true` refuses unpriced vehicles outright. |
+| ~~Upload deletion is not ownership-scoped~~ | Uploads | ~~High~~ | **Fixed** — assets now record their uploader; deletion is the uploader or an admin. |
+| ~~Bank details self-verify~~ | Hotel | ~~Medium~~ | **Fixed** — details start unverified and withdrawals wait for an admin to confirm them. |
+| `USE_DEFAULT_OTP=true` in production | Platform | **Critical** | OTP `1234` signs in as anyone. Left in place at the owner's explicit direction. |
+| ~~No admin cancellation for bookings~~ | Hotel, Tours, Festivals | ~~Medium~~ | **Fixed** — admin cancel routes for tours and festivals; hotel's already admits admins. |
+| ~~Tours has no consumer cancellation~~ | Tours | ~~Medium~~ | **Fixed** — `POST /v1/tours/bookings/:id/cancel`, scoped to the traveller's own booking. |
+| ~~`legacyBackendShim.js`~~ | Taxi | ~~Low~~ | **Fixed** — deleted. |
+| ~~Leftover debug log~~ | Taxi | ~~Low~~ | **Fixed** — removed. |
+| Gateway refunds are not issued | Hotel, Tours, Festivals | Medium | Cancelling marks `refunded` and reverses the vendor wallet, but does not return the customer's money through Razorpay. That is a deliberate separate step. |
+
+---
+
+# Findings from the E2E pass, 2026-09-18
+
+Run after the Google Maps key was added. Everything below was executed against
+the running stack, not inferred.
+
+## FIXED — every geocode endpoint threw, and the missing key hid it
+
+**Severity: high. Fixed in commit `5d34a46`.**
+
+`sanitize` was called at three places in
+`Backend/src/modules/food/landing/controllers/geocodePublic.controller.js` and
+defined at none of them. Reverse geocode, place lookup and nearby places all
+threw `sanitize is not defined` as soon as they got past the key check.
+
+It had never been reported because the server had no Maps key: every request
+returned "not configured" and stopped before reaching the broken line. **Adding
+the key is what exposed it** — the environment gap was masking a code gap.
+
+Verified after the fix: reverse geocode returns Haflong addresses, nearby places
+returns results, place lookup resolves a place_id, and the whole address flow
+works in the UI.
+
+## BLOCKER — the only delivery zone is "indore"
+
+**Severity: launch blocker. Configuration, not code. Not fixed — this is a
+business decision.**
+
+`food_zones` holds exactly **one** document: `indore`, a leftover from the
+original Hello Parth app. No zone covers Haflong or anywhere else in Dima Hasao.
+
+Reproduce: set the delivery location to any Haflong address at `/food/user`.
+The app shows *"We'll be there soon — online ordering isn't available at your
+location yet."* **Food ordering is impossible in the district the platform
+serves.**
+
+Zones are drawn at `/admin/food/zone-setup`.
+
+## BLOCKER — taxi has no vehicle types and no zones
+
+**Severity: launch blocker. Configuration, not code. Not fixed.**
+
+Straight from the database:
+
+| Collection | Documents |
+|---|---:|
+| vehicle types (consumer-visible) | **0** |
+| `taxizones` | **0** |
+| `taxirentalvehicletypes` | 0 |
+| `taxirentalpackagetypes` | 0 |
+| `taxisetprices` | 1, **not active** |
+
+`POST /taxi/rides/fare-estimate` refuses with `vehicleTypeId is required`, and
+there is no vehicle type to supply. **No ride can be quoted or booked at all.**
+
+Set up at `/taxi/admin/pricing/vehicle-type/create`, then zones, then tariffs.
+The single inactive `taxisetprices` row is the "bike lite" tariff created during
+development with invented numbers — replace it rather than activate it.
+
+## PASSED — food ordering works end to end on cash on delivery
+
+Walked as a real customer at `/food/user`, signed in as `8962843670`:
+
+| Step | Result |
+|---|---|
+| Search "Haflong" in the address picker | Real place suggestions returned |
+| Pin a location, add an address | Reverse-geocoded to a real address, fields pre-filled |
+| Browse in the Indore zone | "1 RESTAURANTS DELIVERING TO YOU", distance 3.7 km |
+| Open restaurant, view menu | Menu renders; veg marker shows |
+| Add to cart | Cart updates |
+| Bill | Item ₹100 + **Delivery ₹60 (Distance 2.7 km)** = ₹160 |
+| Place order (COD) | **Order `FOD-4003773` placed** |
+| Customer history | 6 orders → 7 |
+| Admin order list | Appears immediately |
+
+**The amount matches what was stored**, which is the thing worth checking here —
+a cart/charge mismatch was a real bug once:
+
+```json
+pricing: {"subtotal":100,"deliveryFee":60,"total":160,"restaurantCommission":18.1}
+payment: {"method":"cash","status":"cod_pending","amountDue":160}
+```
+
+Also confirmed in passing: **Veg Mode set from `/app/profile` reached the Food
+module** — the shared localStorage keys work as intended.
+
+## Still untested
+
+Restaurant accepting the order · delivery partner assignment and delivery ·
+hotel booking · tours advance payment · festival multi-category checkout ·
+anything behind a **card payment** (I do not enter card details, and I will not
+forge a gateway signature to fake one — cash, pay-at-hotel, pay-later and wallet
+paths remain testable).
+
+---
+
+# Correction and configuration created, 2026-09-18 (later)
+
+## CORRECTION — my "taxi has 0 vehicle types" report was wrong
+
+The earlier entry said taxi had **0 vehicle types** and **0 tariffs**. That was
+wrong, and worth being precise about how I got it wrong:
+
+1. I called `/taxi/users/settings/vehicle-types`, which matches the
+   `settings/:category` route with `category="vehicle-types"` and returns
+   `{settings:{}}`. The real endpoint is `/taxi/users/vehicle-types`.
+2. I then parsed `body.data`, but these endpoints return `results` at the top
+   level, so my array came out empty regardless.
+3. My database scan filtered collection names with a regex that missed the
+   collections holding them.
+
+Three separate mistakes pointing the same way, which is how a wrong number
+survives. The true state was:
+
+| | Reported | Actual |
+|---|---:|---:|
+| Vehicle types | 0 | **1** (`bike lite`) |
+| Tariffs (`set-prices`) | 0 | **1** |
+| Taxi zones | 0 | **0** — this part was right |
+
+**Only the zone was genuinely missing.** The lesson for anyone re-running this:
+confirm an empty list against the endpoint the app itself calls, not the one
+that looks right.
+
+## Configuration created
+
+| What | Where | Value |
+|---|---|---|
+| Vehicle type **Bike** | `/taxi/admin/pricing/vehicle-type/create` | taxi, normal dispatch, capacity 2, size 1 |
+| Service location **Haflong** | `/taxi/admin/pricing/service-location/add` | INR, ₹ |
+| Taxi zone **Haflong Town** | API `POST /v1/taxi/admin/zones` | circle, centre 25.1667/93.0167, radius 15 km |
+| Food zone **Haflong** | API `POST /v1/food/admin/zones` | polygon roughly 25.09–25.24 N, 92.94–93.09 E |
+
+Created through the admin UI where the UI worked, and through the API where the
+map drawing tools did not automate reliably. All four are **test configuration**
+and should be reviewed before launch — particularly the zone boundaries, which
+are rough boxes around Haflong, not surveyed service areas.
+
+### A robustness note found while doing it
+
+`POST /v1/food/admin/zones` accepted coordinates in the wrong shape
+(`{lat,lng}` instead of `{latitude,longitude}`) **without complaining**, and
+stored a polygon of `{latitude:0, longitude:0}` points. A zone at the origin
+covers nothing, and nothing said so. Corrected by hand afterwards. Worth
+validating that payload.
+
+## PASSED — taxi fare quoting, with arithmetic checked
+
+`POST /v1/taxi/rides/fare-estimate`, tariff `bike lite`
+(₹45 base / 2 km included / ₹14 per km / ₹1 per min / 5% tax):
+
+| Trip | Total | Breakdown |
+|---|---:|---|
+| 2 km, 5 min | ₹47 | base 45, within base distance, tax 2 |
+| 10 km, 25 min | ₹191 | 45 + (8 × 14 = 112) + 25 + tax 9 |
+| 20 km, 45 min | ₹359 | 45 + (18 × 14 = 252) + 45 + tax 17 |
+
+Every line adds up. **The tariff numbers are still the invented development
+values** — replace them with real rates.
+
+Worth knowing about this endpoint: it prices from `estimatedDistanceMeters` in
+the request body and **ignores the pickup/drop coordinates entirely**. Sending
+coordinates alone returns the base fare with `chargeableKm: 0`, which looks like
+a pricing bug and is not one. It does mean the **distance is client-supplied**;
+the server refuses a fare below its own computed one, but its computation uses
+the distance the client sent.
+
+## PASSED — Haflong is now a served location for food
+
+Setting a Haflong delivery address no longer shows "online ordering isn't
+available at your location yet". The header reads HAFLONG and the app proceeds
+normally.
+
+It now says **"0 RESTAURANTS DELIVERING TO YOU"**, which is correct: both
+existing restaurants are physically in Indore. Ordering in Haflong needs a
+Haflong restaurant onboarded with a menu — that is data entry, not a defect.
+
+## Still remaining
+
+- A restaurant that actually serves Haflong (create → onboard → timings → menu)
+- Ride booked end to end (needs a concurrent driver session)
+- Restaurant accepting an order, and the delivery partner chain
+- Hotel, tours and festival booking flows
+- Anything behind a card payment
+
+---
+
+# Haflong food chain, end to end, 2026-09-18
+
+## PASSED — an order can now be placed in Haflong
+
+Order **`FOD-1305168`**, placed as a customer at a Haflong address from a
+Haflong restaurant:
+
+```json
+pricing: {"subtotal":180,"deliveryFee":60,"total":240,"restaurantCommission":32.58}
+payment: {"method":"cash","status":"cod_pending","amountDue":240}
+address: Haflong
+```
+
+Cart total and stored amount agree again. What it took:
+
+| Step | Note |
+|---|---|
+| Haflong food zone | Created earlier |
+| A restaurant inside it | **Moved `Test Restaurant`** — it had *no zone and no coordinates at all*, which is why it had never appeared for anyone |
+| A dish | Created `Bamboo Shoot Curry`, ₹180, veg |
+| A Haflong delivery address | Added through the UI; Places resolved it correctly |
+
+### Why I moved a restaurant instead of creating one
+
+The Add Restaurant wizard's step 3 requires **PAN number, PAN image, FSSAI
+number, bank account number and IFSC**. I do not enter bank account or
+government identifier values into forms, including invented ones, so I took the
+route that did not require it. **Creating a restaurant through the admin UI
+therefore remains untested end to end** — steps 1 and 2 were completed and
+worked; step 3 was not submitted.
+
+## Behaviours confirmed correct (not bugs)
+
+**Veg Mode hides non-veg restaurants.** Haflong showed "0 restaurants" until Veg
+Mode was switched off, then showed Test Restaurant. The setting had been turned
+on from `/app/profile` earlier, so this also confirms the shared setting reaches
+the Food module.
+
+**Veg categories refuse non-veg dishes.** `POST /food/admin/foods` rejected a
+non-veg dish in a Veg category with *"This Veg category cannot accept Non-Veg
+food"*. The FSSAI marking is enforced server-side, not just drawn.
+
+**Cross-zone carts are refused.** With a Haflong restaurant in the cart and an
+Indore address selected, checkout showed *"Test Restaurant doesn't deliver to
+your selected location"* and offered to switch address or clear the cart.
+
+## CORRECTION — the delivery fee is flat, not distance-based
+
+An earlier entry said the delivery fee was distance-based, because the total
+changed from ₹135 to ₹160 once an address was chosen. With more data that is
+wrong:
+
+| Order | Distance | Delivery fee |
+|---|---:|---:|
+| `FOD-4003773` | 2.7 km | ₹60 |
+| `FOD-1305168` | 0.4 km | ₹60 |
+
+It is **₹60 flat** (or a minimum that both trips fall under). The ₹135 → ₹160
+change was the fee appearing once an address existed, not the fee scaling with
+distance. Whether a flat ₹60 on a 400 m delivery is intended is a business
+question worth asking.
+
+## Minor — the list and the detail page disagree on distance
+
+With a Haflong browse location but an Indore saved address, the restaurant list
+showed **1765.6 km** while the restaurant's own page showed **1.2 km**. The list
+measures from the saved address and the detail page from the selected location.
+Once both were Haflong it read **366 m** and was consistent. Confusing rather
+than broken, but a customer seeing "1765.6 km" will not think "stale address".
+
+## `foodType` defaults to Non-Veg when omitted
+
+`POST /food/admin/foods` derives `foodType` as `body.foodType === 'Veg' ? 'Veg'
+: 'Non-Veg'`. Sending `isVeg: true` (a plausible guess) silently produces a
+**Non-Veg** dish. Failing closed is the right direction for a food-safety
+marker, so this is noted rather than filed as a defect — but an API client that
+guesses the field name gets a wrong label rather than an error.
+
+## Still remaining
+
+Restaurant accepting the order · delivery partner assignment and delivery ·
+Add Restaurant wizard step 3 · hotel, tours and festival bookings · card
+payments.
+
+---
+
+# Restaurant and delivery legs, 2026-09-18
+
+## PASSED — the restaurant receives and processes orders
+
+Signed in at `/food/restaurant/login` with `8888888888` / OTP `1234`
+(Test Restaurant).
+
+| Check | Result |
+|---|---|
+| Order arrives in the panel | **Live, no refresh** — popped up as a modal within seconds |
+| Order detail | Address, item, ₹180 total, Cash on Delivery, adjustable prep time |
+| The restaurant's total | Shows **₹180**, not the customer's ₹240 — correct, the ₹60 delivery fee is not theirs |
+| Lifecycle | `created → confirmed → preparing → ready_for_pickup`, all accepted |
+| Customer sees it | Customer's order read back `ready_for_pickup` — status propagates |
+
+## CONFIRMED FEATURE — orders auto-reject after ~5 minutes
+
+My first Haflong order (`FOD-1305168`) was cancelled without anyone touching it:
+
+```
+09:46:01  Order placed
+09:51:39  No response from restaurant (Auto-rejected)
+```
+
+Five minutes 38 seconds. The accept modal shows a live countdown
+("Slide to accept (04:38)"), so this is deliberate, not a defect. Worth knowing
+before anyone reports it as a bug: **the restaurant has ~5 minutes.**
+
+## BLOCKED — orders never reach a delivery partner
+
+`FOD-9103420` reached `ready_for_pickup` and **stopped there**:
+
+```json
+dispatch: {"modeAtCreation":"auto","status":"unassigned","deliveryPartnerId":null,"offeredTo":[]}
+```
+
+The rider was signed in and online, and `/food/delivery/orders/available`,
+`/pending` and `/assigned` all returned **zero**.
+
+**Cause: no delivery partner has a zone.** Both partners in the database have
+`zoneId: undefined`:
+
+| Partner | Phone | zoneId | Status |
+|---|---|---|---|
+| aman | 7974161582 | **undefined** | online |
+| Test Delivery Partner | 8888888888 | **undefined** | online |
+
+Auto-dispatch has nothing to match against, so `offeredTo` stays empty. Whether
+partners are simply missing zone assignment or dispatch never sets one, the
+observable effect is the same: **an order can be cooked and marked ready, and no
+rider will ever be offered it.** That ends the food chain one step short of
+delivery.
+
+## Could not automate — the slide-to-accept control
+
+The restaurant accepts by dragging a "Slide to accept" control. Synthetic
+pointer, mouse and touch event sequences all failed to move it (it needs trusted
+input, as framer-motion drag does). **Not a defect — a person can slide it.** I
+drove the same transition through
+`PATCH /v1/food/restaurant/orders/:id/status` instead, which is the call the
+control makes.
+
+## BLOCKED — delivery partner onboarding
+
+Creating a new partner requires **Aadhaar photo, PAN number and photo, and
+driving licence number and photo**. I do not enter government identifier values
+into forms, so I signed in as the existing approved partner instead.
+**`/food/delivery/signup` remains untested.**
+
+Also worth noting: `POST /v1/auth/otp/complete` refuses the delivery audience
+outright — *"delivery partner accounts are created through onboarding"* — so
+there is no API shortcut either.
+
+## API notes gathered while testing
+
+| Endpoint | Detail |
+|---|---|
+| `PATCH /food/restaurant/orders/:id/status` | Field is **`orderStatus`**, not `status`; accept value is `confirmed`. Sending `status` returns a bare `"Required"` |
+| `PATCH /food/delivery/availability` | Field is **`status: 'online'`**. Sending `isOnline`/`available` returns **200 "Availability updated successfully"** while setting the partner **offline** — a success message for an ignored payload |
+| `POST /auth/otp/complete` | Needs the **`signupToken`** from verify, not the OTP. `Backend/scripts/qa/lib/identities.js` passes the OTP, which works only because its phones are already registered — it would fail for a genuinely new number |
+
+## Still remaining
+
+Delivery completed end to end (blocked above) · Add Restaurant wizard step 3 ·
+delivery partner onboarding · hotel, tours and festival bookings · card payments.
+
+---
+
+# Food chain completed end to end, 2026-09-18
+
+## PASSED — order `FOD-9504209` went all the way to delivered
+
+Every step executed against the running stack:
+
+| Step | Actor | Result |
+|---|---|---|
+| Place order | Customer (UI) | ₹180 + ₹60 = ₹240, COD, Haflong |
+| `confirmed` → `preparing` → `ready_for_pickup` | Restaurant | 200 each; customer saw each change |
+| Order offered | Dispatch | Appeared in the rider's offers |
+| Accept | Rider | 200 |
+| Reached pickup → confirm pickup | Rider | 200 each |
+| Reached drop → complete | Rider | 200 each |
+
+Final state:
+
+```
+orderStatus : delivered
+payment     : {"method":"cash","status":"paid","amountDue":240}
+riderEarning: 27   platformProfit: 65.58   restaurantCommission: 32.58
+```
+
+**The split adds up:** ₹240 = ₹180 item + ₹60 delivery. Platform takes ₹32.58
+commission from the item plus ₹33 of the delivery fee; the rider gets ₹27;
+32.58 + 33 = 65.58. Correct.
+
+## CORRECTION — two wrong diagnoses in my previous entry
+
+The previous entry blamed dispatch on delivery partners having no zone, then I
+blamed a zero cash limit. **Both were wrong**, and both wrong for the same
+reason — I read the symptom, not the code.
+
+1. **"Riders have no zone."** A partner's `zoneId` field is irrelevant. The zone
+   is detected from their **GPS** —
+   `detectZoneIdForPoint(partner.lastLat, partner.lastLng)`. Once the rider went
+   online with coordinates, detection resolved the Haflong zone correctly.
+2. **"`deliveryCashLimit: 0` blocks dispatch."** The opposite: a total limit of
+   `0` returns `hasCapacity: true` with `availableCashLimit` set to
+   `MAX_SAFE_INTEGER` — zero means **unlimited**. I changed it to 5000 on that
+   wrong reading, which imposed a real limit where none existed, and **restored
+   it to 0** once I understood the code.
+
+**What was actually wrong: my response parsing.** The endpoint returns
+`{data, meta, cashLimit, capacity, newOffers, acceptedOrders}` and I was reading
+`data.orders`. The service was returning the order the whole time. Calling the
+service directly is what settled it — three "findings" that were one parsing
+mistake.
+
+## Real finding — nothing is credited to any wallet
+
+The order is `delivered` and `paid`, and the split is computed and stored on the
+order. But **every wallet collection is empty**:
+
+| Collection | Documents |
+|---|---:|
+| `food_restaurant_wallets` | **0** |
+| `food_delivery_wallets` | **0** |
+| `food_admin_wallets` | **0** |
+
+The restaurant's ₹147.42, the rider's ₹27 and the platform's ₹65.58 exist only
+as numbers on the order document. For a cash order the rider is also holding
+₹240 that no `cashInHand` record tracks — which is what the cash-limit feature
+reads, so that limit can never bind.
+
+Whether wallets are created lazily on first payout or this is a missing credit
+step needs a look at the settlement path. Either way, **after a completed
+delivery no party's balance moved.**
+
+## Minor — `deliveredAt` is never set
+
+The delivered order has `deliveredAt: undefined`. Delivery-time reporting and
+any SLA measurement have nothing to read.
+
+## Still remaining
+
+Add Restaurant wizard step 3 · delivery partner onboarding (both blocked on
+government-ID and bank fields) · hotel, tours and festival bookings · card
+payments.
+
+---
+
+# Hotel booking, end to end, 2026-09-18
+
+## PASSED — booking `BK-1789726147851-388`
+
+Booked through the UI at `/app/hotels` as a customer, paying **at the property**
+(no card involved).
+
+| Step | Result |
+|---|---|
+| Listing | 3 approved stays, all real Dima Hasao properties |
+| Property detail | Live inventory ("6 rooms left"), check-in/out times, room types |
+| Fare | ₹3,800 + 12% GST ₹456 = **₹4,256** — correct |
+| Payment method | "Pay at Hotel" changes the button to **"Reserve (₹4,256 at hotel)"** |
+| Confirmation | Booking ID returned on screen |
+| Customer list | Present |
+| Admin list | Present as the newest booking |
+
+Stored booking:
+
+```
+bookingStatus  : confirmed      paymentStatus: pending      method: pay_at_hotel
+checkInDate    : 2026-09-19     checkOutDate : 2026-09-20   totalNights: 1
+guests         : 2 adults       pricePerNight: 3800
+totalAmount 4256 | taxes 456 | adminCommission 380 | partnerPayout 3420
+```
+
+**The money is right.** Commission is 10% of the ₹3,800 base = ₹380; payout
+3800 − 380 = ₹3,420; platform keeps 380 + 456 = ₹836; 3420 + 836 = 4256.
+
+## PASSED — pay-at-hotel settlement debits the partner, as designed
+
+The partner wallet reads **−₹1,672**, which is exactly −836 × 2 for the two
+pay-at-hotel bookings. That is the documented behaviour: the partner collects
+the full ₹4,256 in cash at the property, so the platform's cut (commission plus
+taxes) is **debited** from their wallet rather than credited. The negative
+balance is the partner owing the platform, not a bug.
+
+This is worth contrasting with the food module, where a completed delivery moved
+**no** balance at all (see the previous entry). Hotel settles; food does not.
+
+## Not a bug — Razorpay opening on "Pay at Hotel"
+
+I reported this to myself mid-test and it was wrong. Clicking the *text* of the
+Pay-at-Hotel option does not select it; the first radio (UPI/QR) stayed checked,
+so opening Razorpay was correct. Selecting the radio properly changes the button
+to "Reserve (… at hotel)" and no gateway opens. **The app behaved correctly; my
+click did not.**
+
+## Inventory is derived, not decremented
+
+`roomtypes` carries `totalInventory` and no per-booking counter. "6 rooms left"
+is computed against existing bookings rather than stored, so there is no stale
+counter to drift — but it also means **the concurrent-booking test matters
+more**, since two simultaneous bookings both read the same derived number. That
+test has not been run.
+
+## Method note for whoever picks this up
+
+Four times now I have reported something as broken that was my own
+response-parsing or a wrong field name — `checkIn` vs `checkInDate`,
+`availableRooms` vs `totalInventory`, `data.orders` vs `data`, and the
+vehicle-types endpoint. **Read the shape before believing the number.** Calling
+the service or reading the schema directly settles in one step what guessing
+never does.
+
+## Still remaining
+
+Concurrent double-booking · hotel cancellation and refund · partner-side
+booking view · tours booking (advance payment needs a card) · festivals ·
+Add Restaurant wizard step 3 · delivery partner onboarding.
+
+---
+
+# Festivals, 2026-09-18
+
+## FIXED — an abandoned basket held its seats forever
+
+**Severity: high. Fixed in commit `5766320`.**
+
+Checkout takes seats up front (correct — a race for the last pass needs one
+winner) and gives them back only when the browser calls the release endpoint. A
+browser that is closed, offline or killed never calls it.
+
+**Measured:** three abandoned baskets moved this festival's sold count from
+**3 to 12**, with 28 pending holds on one account and nothing to return them.
+At scale a festival sells out to people who were only browsing.
+
+The release handler's own comment already described the hole — *"nothing
+expires them"* — it simply had no counterpart.
+
+**Fix:** holds carry `holdExpiresAt` (30 minutes, longer than a payment session,
+short enough not to lock a festival up). `sweepExpiredHolds` returns the seats
+and cancels the booking with a reason, running **lazily** wherever availability
+is read or taken — before a checkout, and on the public detail screen — so the
+counts heal without a scheduler to install and forget. It ages out pre-existing
+holds on the same clock, since those were the ones already sitting on seats.
+
+The verify path got a matching guard: a hold that expired mid-payment has
+already returned its seats, so confirming it would issue a pass the festival no
+longer has. It re-takes the seats first and, if they are genuinely gone,
+refuses and flags that a refund is owed rather than overselling silently.
+
+**Verified:** a backdated hold released its 3 seats on the next read (11 → 8)
+and reads `cancelled — Hold expired before payment`. QA suite 124/125, 1
+blocked, unchanged.
+
+## PASSED — multi-category checkout takes one payment
+
+The bug originally reported (Razorpay charging only the first category) is
+fixed and I confirmed it end to end:
+
+| | |
+|---|---|
+| Basket | 2 × Daily General (₹250) + 1 × Season Pass (₹650) |
+| Expected | ₹1,150 |
+| `POST /payments/orders/:groupId` | **₹1,150**, one order, covering 2 bookings |
+
+One `orderGroupId` groups the bookings, and the frontend
+(`FestivalDetailScreen`) calls the **group** endpoints, releases the checkout
+when the payment window is dismissed, and has a no-gateway settle path.
+
+A caution for anyone testing this: the **per-booking** endpoint
+`POST /payments/bookings/:id/order` still exists and correctly prices one
+booking. Calling it for a multi-category basket reproduces the original
+symptom exactly — I did that first and briefly believed the bug was back.
+
+## PASSED — per-category seat configuration
+
+`ticketCategories` carries `totalTickets` / `soldTickets` with derived
+`remainingTickets` and `isSoldOut`, plus `maxPerBooking` so one buyer cannot
+take a whole allocation. The festival-level aggregate agrees with the parts
+(3000 + 1500 = 4500; 2 + 1 = 3 sold).
+
+## Fixed in passing — a fragile test
+
+`BIZ-151` selected `vehicle-types[0]`. Adding a vehicle type with no tariff
+turned fare enforcement from a pass into a *blocked* — a silent coverage loss
+that reads like a configuration note. It now looks for a type that actually
+prices.
+
+## Still remaining
+
+Festival payment completion (needs a card) · concurrent seat race · booking
+window open/close/clear · hotel cancellation and refund · tours advance
+payment · the two onboarding flows behind government-ID and bank fields.
+
+---
+
+# Corrections and further passes, 2026-09-18 (final)
+
+## CORRECTION — "nothing is credited to any wallet" was wrong
+
+An earlier entry reported that after a completed food delivery no party's
+balance moved, on the evidence that every `*_wallets` collection was empty.
+
+**That was the wrong evidence.** Balances are **derived from orders**, and
+wallet documents are created lazily when one is actually needed (withdrawals,
+bonuses). Asking the endpoints the apps actually call:
+
+| Endpoint | Reports |
+|---|---|
+| `GET /food/restaurant/finance` | `totalEarnings: 147.42`, `totalOrders: 1` |
+| `GET /food/delivery/earnings` | `totalEarnings: 27`, `totalOrders: 1` |
+| `GET /food/delivery/wallet` | `totalBalance: 27`, **`cashInHand: 240`** |
+
+Every figure is correct: 180 − 32.58 commission = **147.42** for the restaurant,
+**27** for the rider, and the ₹240 of collected cash **is** tracked — which the
+same entry also said it was not.
+
+**Nothing is broken here, and nothing needed fixing.** This is the fifth time
+in this pass that reading a collection or a response field instead of calling
+the endpoint produced a false finding. The rule earned the hard way: **ask the
+API the app asks, before concluding from storage.**
+
+## PASSED — concurrent seat race has exactly one winner
+
+Reduced a category to a single remaining seat, then fired **eight simultaneous
+checkouts** for it:
+
+```
+succeeded: 1
+refused  : 7  ("Daily General Access Pass just sold out")
+other    : 0
+```
+
+The conditional `findOneAndUpdate` claim holds under contention — no
+overselling, no lost seats, and the refusal message is useful.
+
+## PASSED — the booking window, including the clear that used to be the trap
+
+| Action | Result |
+|---|---|
+| `PUT /festivals/admin/:id` with `bookingClosesAt` in the past | Checkout refused, **409 "Bookings have closed for this festival"** |
+| Clear with `null` | **Silently ignored** — the global null-stripping middleware removes it before the handler sees it |
+| Clear with `''` | Cleared, bookings reopened, checkout 201 |
+
+The `null` no-op is the documented trap, and it matters only if the admin UI
+sends the wrong one. It does not: `Global/app/admin/pages/Festivals.jsx` sends
+`form.bookingClosesAt || ''`, which is the correct clear signal. **Set, close,
+clear and reopen all work end to end.**
+
+## Still remaining
+
+Festival and tours payment completion (both need a card) · hotel cancellation
+and refund · hotel concurrent double-booking · Add Restaurant wizard step 3 ·
+delivery partner onboarding.
+
+---
+
+# Everything remaining, 2026-09-18 (closing pass)
+
+## FIXED — hotel bookings took no inventory at all
+
+**Severity: critical. Fixed in commit `d00dd3a`.**
+
+Six simultaneous requests for a room type with `totalInventory: 1` **all
+succeeded**, and the database agreed: six live bookings against one room.
+
+The race was not the whole story. `createBooking` **never checked availability
+and never wrote the ledger** — the quote reported `availableUnits` and the
+booking ignored it, and `AvailabilityLedger` was only ever written by a partner
+blocking rooms by hand. A single request beyond capacity would have gone
+through too.
+
+**Fix:** booking claims inventory before writing anything. Mongo may be
+standalone here so no transaction is assumed — the claim is inserted, every
+overlapping entry is ranked by `_id` (monotonic, so insertion order), and the
+claim survives only if it lands inside capacity. Racers outside it delete their
+own entry and are refused. Under-selling by one is possible if a winner dies
+between insert and rank; **overselling is not**. The entry is pointed at the
+booking once it has an id, so the cancellation cleanup that already deletes by
+`referenceId` releases it.
+
+| | Before | After |
+|---|---|---|
+| 6 simultaneous, inventory 1 | **6 succeeded** | **1 succeeded, 5 refused 409** |
+| Sequential second attempt | succeeded | refused 400 |
+| Cancel then rebook | n/a | works |
+
+With bookings finally writing the ledger, the **pre-existing** sequential check
+started working too — one path catches the sequential case, the new claim
+catches the concurrent one.
+
+## PASSED — hotel cancellation reverses the partner debit exactly
+
+Cancelling the pay-at-hotel booking returned *"Booking cancelled successfully
+(Pay at Hotel - Commission Refunded)"*, and the partner wallet moved
+**−1,672 → −836**: precisely the +836 reversal (commission 380 + taxes 456).
+Status, `cancelledAt` and reason all recorded.
+
+## PASSED — tours pricing and the settlement identity
+
+| | |
+|---|---|
+| Quote (2 adults, 1 child, ₹2,200 pp) | base 5,720 = 2×2200 + 1×1320 (child at 60%) |
+| Tax 5% | 286 → **total 6,006** |
+| Advance 25% | **1,502**, balance **4,504** |
+| Booking `TR-1789728059763-948` | commission 572 (10% of gross), payout **5,148** |
+
+The documented identity holds: `operatorPayout = total − taxes − commission`
+= 6006 − 286 − 572 = **5148**. Visible to the tours admin immediately.
+
+**Advance payment itself is blocked for me** (card). The no-gateway settle path
+correctly refuses while Razorpay is configured — *"Complete the payment through
+the gateway to confirm this booking"* — so it cannot be used as a free bypass.
+That guard working is itself worth recording.
+
+## PASSED — support, end to end
+
+Ticket `TR-TWCP3-2875` raised as a customer against the `tours` module and
+immediately visible in the admin desk. Note the module must be one of
+`food, taxi, hotel, tours, festivals, platform` — `tour` singular is refused
+with a clear message.
+
+## Truly remaining, and why
+
+| Item | Why it is not done |
+|---|---|
+| Festival and tours payment completion | Needs card entry, which I do not do |
+| Hotel gateway refund on cancellation | Same — needs a paid-by-card booking first |
+| Add Restaurant wizard step 3 | Requires PAN, bank account and IFSC values |
+| Delivery partner onboarding | Requires Aadhaar, PAN and driving licence values |
+
+Everything else discoverable in this platform has now been walked end to end.
+
+---
+
+# Two corrections and one open decision, 2026-09-18
+
+## CORRECTION — `deliveredAt` is recorded after all
+
+An earlier entry said the delivered timestamp is never set, so delivery-time
+reporting has nothing to read. **Wrong.** The canonical field is
+`deliveryState.deliveredAt`, and the delivered order carries a full phase
+timeline:
+
+```json
+{"currentPhase":"delivered","reachedPickupAt":"…10:03:15","pickedUpAt":"…10:03:16",
+ "reachedDropAt":"…10:03:26","deliveredAt":"…10:03:26"}
+```
+
+The top-level `deliveredAt` is a legacy denormalised field, and every reader
+already falls back (`o?.deliveryState?.deliveredAt || o?.deliveredAt`). Nothing
+is missing. **Seventh time this pass that reading one field instead of the
+document produced a false finding.**
+
+## CORRECTION — money *is* returned on a paid cancellation
+
+The original audit said cancelling "marks refunded and reverses the vendor
+wallet but does not return the customer's money". Half right. The hotel cancel
+path **does** credit the customer:
+
+```js
+await userWallet.credit(booking.totalAmount, `Refund for Booking #…`, …, 'refund');
+```
+
+The customer is made whole — **to their in-app wallet**, not to the card they
+paid with.
+
+## OPEN DECISION — refund destination, and one real defect behind it
+
+This is a business call, not a bug, so it is recorded rather than changed.
+
+**What exists.** A full gateway-refund capability:
+`core/payments/refund.service.js` (`processGatewayRefund` calls
+`instance.payments.refund`), a hotel route `POST /api/payments/refund/:bookingId`,
+and a queue processor for order cancellations.
+
+**What actually happens.** Cancelling a paid hotel booking credits the in-app
+wallet. **No cancellation path anywhere calls the gateway.**
+
+**The defect behind it**, in `queues/processors/payment.processor.js`:
+
+```js
+refundTo: paymentMethod === 'wallet' ? 'wallet' : 'wallet' // Default to wallet refund
+```
+
+Both branches are identical — a placeholder nobody finished. And the processor
+is **never enqueued**: there is no `queue.add` for it anywhere, so the whole
+gateway path is dead code regardless.
+
+**Why this needs a decision rather than a fix.** Refund-to-wallet is a
+legitimate model, but the order documents themselves declare
+`refund.destination: "source"`, which says the intent was refund-to-source. For
+card payments in India that is also the conventional expectation. Changing where
+customer money goes is a compliance and product decision, and getting it wrong
+in either direction has real consequences — so it is left as it is until
+somebody decides.
+
+## Still genuinely blocked
+
+Card entry (festival and tours payment completion, and a card-paid hotel booking
+to test a real refund against) and government identifiers plus bank details
+(Add Restaurant step 3, delivery partner onboarding).

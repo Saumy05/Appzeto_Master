@@ -1,0 +1,257 @@
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import ModuleAvailabilityGate from '@/shared/components/ModuleAvailabilityGate';
+import { Suspense, lazy, useEffect } from 'react'
+import {
+  NATIVE_LAST_ROUTE_KEY,
+  rememberLoginReturnTo,
+  syncActiveModule,
+  prefetchFoodUser,
+  prefetchTaxiUser,
+} from '../shared/utils/activeModule.js'
+import AdminModulesKeepAlive, { AdminKeepAliveSlot } from './AdminModulesKeepAlive.jsx'
+import { isModuleAuthenticated } from '../shared/utils/moduleAuth.js'
+import ModuleShell from '../modules/DimaHasao/components/layout/ModuleShell.jsx'
+
+// Lazy load the Food service module (Dima Hasao app)
+const FoodApp = lazy(() => import('../modules/Food/routes'))
+const TaxiApp = lazy(() => import('../modules/Taxi/TaxiApp'))
+// Dima Hasao customer app (client-approved v1 UI)
+const DimaHasaoApp = lazy(() => import('../modules/DimaHasao'))
+// Hotel / property module (ported from the HomeZoo codebase): admin + partner panels
+const HotelApp = lazy(() => import('../modules/Hotel/routes'))
+const ToursApp = lazy(() => import('../modules/Tours/routes'))
+const GlobalApp = lazy(() => import('../modules/Global/routes'))
+const LegalDocumentPage = lazy(() => import('@/shared/pages/LegalDocumentPage'));
+
+// Avoid full-screen white spinner flash on Food ↔ Taxi switches.
+const SoftFallback = () => <div className="min-h-screen bg-transparent" aria-hidden="true" />
+
+const FoodAppWrapper = () => {
+  const location = useLocation()
+  const vertical = new URLSearchParams(location.search).get('vertical')
+
+  // Taxi lives under /taxi/* only — never embed it on /food/user.
+  if (
+    location.pathname.replace(/\/$/, '') === '/food/user' &&
+    vertical === 'taxi'
+  ) {
+    return <Navigate to="/taxi/user" replace />
+  }
+
+  return (
+    <Suspense fallback={<SoftFallback />}>
+      <FoodApp />
+    </Suspense>
+  )
+}
+
+const TaxiAppWrapper = () => (
+  <Suspense fallback={<SoftFallback />}>
+    <TaxiApp />
+  </Suspense>
+)
+
+// Consumer modules have exactly one login: the Dima Hasao (v1) screen.
+// Anything under /food/user or /taxi/user requires that session first.
+const RequireUserAuth = ({ children }) => {
+  if (!isModuleAuthenticated('user')) {
+    return <Navigate to="/app/login" replace />
+  }
+
+  return children
+}
+
+/** Food's own destinations, surfaced under the shared nav's More. */
+const FOOD_NAV_EXTRAS = [
+  { label: 'Delivery', icon: 'fa-solid fa-motorcycle', path: '/food/user' },
+  { label: 'Dining', icon: 'fa-solid fa-utensils', path: '/food/user/dining' },
+  { label: 'My Orders', icon: 'fa-solid fa-receipt', path: '/food/user/orders' },
+  { label: 'Cart', icon: 'fa-solid fa-cart-shopping', path: '/food/user/cart' },
+]
+
+const FoodUserShell = () => (
+  <RequireUserAuth>
+    <ModuleShell
+      title="DIMA FOOD & DINING"
+      subtitle="Authentic tribal delicacies & local eateries"
+      navExtras={FOOD_NAV_EXTRAS}
+      navExtrasTitle="Food & Dining"
+    >
+      <FoodAppWrapper />
+    </ModuleShell>
+  </RequireUserAuth>
+)
+
+/** Taxi's own destinations. "My Rides" stays because /app/bookings shows
+    every module's bookings, while this is the ride-only view. */
+/*
+ * What taxi offers beyond the five shared anchors, shown under More.
+ *
+ * This is the list that actually renders: /taxi/user goes through
+ * TaxiUserShell -> ModuleShell -> AppBottomNav, so the near-identical
+ * TAXI_EXTRAS inside the module's own BottomNavbar never reaches the screen
+ * there. Outstation was only in that copy, which is why it had no entry here.
+ */
+const TAXI_NAV_EXTRAS = [
+  { label: 'Book a Ride', icon: 'fa-solid fa-car-side', path: '/taxi/user' },
+  { label: 'My Rides', icon: 'fa-solid fa-route', path: '/taxi/user/activity' },
+  { label: 'Outstation', icon: 'fa-solid fa-road', path: '/taxi/user/intercity' },
+  { label: 'Ride Wallet', icon: 'fa-solid fa-wallet', path: '/taxi/user/wallet' },
+  { label: 'Support', icon: 'fa-solid fa-headset', path: '/taxi/user/support' },
+]
+
+const TaxiUserShell = () => (
+  <RequireUserAuth>
+    <ModuleShell
+      title="TAXI / AUTO"
+      subtitle="Book your ride, travel with ease"
+      navExtras={TAXI_NAV_EXTRAS}
+      navExtrasTitle="Taxi & Auto"
+    >
+      <TaxiAppWrapper />
+    </ModuleShell>
+  </RequireUserAuth>
+)
+
+const RedirectToFood = () => {
+  const location = useLocation()
+  return <Navigate to={`/food${location.pathname}${location.search}`} replace />
+}
+
+const AppRoutes = () => {
+  const location = useLocation()
+
+  useEffect(() => {
+    syncActiveModule(location.pathname)
+    rememberLoginReturnTo(location.pathname)
+  }, [location.pathname])
+
+  // Warm sibling modules on idle so Food ↔ Taxi (user) switches stay smooth.
+  // Admin ↔ admin warming (all five modules, not just Food/Taxi) is handled
+  // by AdminModulesKeepAlive's own prefetch effect instead.
+  useEffect(() => {
+    const path = location.pathname || ''
+    const warm = () => {
+      if (path.startsWith('/food/user') || path === '/food' || path.startsWith('/food/user/')) {
+        prefetchTaxiUser()
+      } else if (path.startsWith('/taxi/user')) {
+        prefetchFoodUser()
+      }
+    }
+
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(warm, { timeout: 1200 })
+      : window.setTimeout(warm, 300)
+
+    return () => {
+      if (window.cancelIdleCallback && typeof idle === 'number') {
+        window.cancelIdleCallback(idle)
+      } else {
+        window.clearTimeout(idle)
+      }
+    }
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return
+
+    const route = `${location.pathname || ''}${location.search || ''}`
+
+    // Do NOT persist transient ride-flow routes that rely on React Router state.
+    // If the app reopens on these pages the state is lost, showing stale data.
+    const TRANSIENT_ROUTE_SEGMENTS = [
+      '/ride/select-vehicle',
+      '/ride/select-location',
+      '/ride/searching',
+      '/ride/tracking',
+      '/ride/complete',
+      '/ride/chat',
+      '/parcel/searching',
+      '/parcel/tracking',
+      '/parcel/details',
+      '/parcel/contacts',
+      '/intercity/details',
+      '/intercity/confirm',
+      '/rental/vehicle',
+      '/rental/schedule',
+      '/rental/kyc',
+      '/rental/deposit',
+      '/rental/confirmed',
+    ]
+    const isTransient = TRANSIENT_ROUTE_SEGMENTS.some(seg => route.includes(seg))
+    if (isTransient) {
+      // Still remember module so cold start opens Taxi/Food home correctly.
+      if (route.includes('/taxi/')) {
+        localStorage.setItem(NATIVE_LAST_ROUTE_KEY, '/taxi/user')
+      } else if (route.includes('/food/user')) {
+        localStorage.setItem(NATIVE_LAST_ROUTE_KEY, '/food/user')
+      }
+      return
+    }
+
+    if (route.startsWith('/taxi/') || route.startsWith('/food/') || route.startsWith('/admin')) {
+      localStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
+    }
+  }, [location.pathname, location.search])
+
+  return (
+    <>
+      {/* Every admin module (Food, Taxi, Hotel, Tours, Global): keep each shell
+          mounted after its first visit, so switching between any of them is
+          an instant hide/show instead of a full unmount/remount. */}
+      <AdminModulesKeepAlive />
+
+      {/* A module switched off in Toggle Management shows the maintenance
+          screen for its whole route tree. Wrapping the router rather than each
+          module means a path nobody thought to gate is covered too. */}
+      <ModuleAvailabilityGate>
+      <Routes>
+        {/* Root lands on the client-approved Dima Hasao customer app. The
+            Hello-Parth consumer shells stay reachable at /food/* and /taxi/*. */}
+        <Route path="/" element={<Navigate to="/app" replace />} />
+        {/* Consumer login is the Dima Hasao screen only. Vendor logins keep
+            their own paths (/food/restaurant/login, /food/delivery/login) and
+            the one admin login lives at /admin/login. */}
+        <Route path="/login/*" element={<Navigate to="/app/login" replace />} />
+        <Route path="/app/*" element={<Suspense fallback={<SoftFallback />}><DimaHasaoApp /></Suspense>} />
+        {/* Gated consumer shells must precede the generic module routes. */}
+        <Route path="/food/user/*" element={<FoodUserShell />} />
+        <Route path="/food/*" element={<FoodAppWrapper />} />
+        {/* More specific than /taxi/* — UI comes from AdminModulesKeepAlive. */}
+        <Route path="/taxi/admin/*" element={<AdminKeepAliveSlot />} />
+        <Route path="/taxi/user/*" element={<TaxiUserShell />} />
+        <Route path="/taxi/*" element={<TaxiAppWrapper />} />
+        {/* More specific than /hotel/* — UI comes from AdminModulesKeepAlive.
+            Hotel also serves real consumer/partner content at this same
+            prefix, so (unlike Tours/Global below) only the admin sub-path is
+            carved out; everything else still falls through to HotelApp. */}
+        <Route path="/hotel/admin/*" element={<AdminKeepAliveSlot />} />
+        <Route path="/hotel/*" element={<Suspense fallback={<SoftFallback />}><HotelApp /></Suspense>} />
+        {/* Tours is admin-only end to end, but the split still mirrors Hotel's
+            for consistency — and so the /tours/* catch-all redirect below
+            (in Tours/routes.jsx) keeps handling bare /tours visits. */}
+        <Route path="/tours/admin/*" element={<AdminKeepAliveSlot />} />
+        <Route path="/tours/*" element={<Suspense fallback={<SoftFallback />}><ToursApp /></Suspense>} />
+        {/* Policies published in Global Settings, readable without a session
+            because sign-in screens link to them. */}
+        <Route path="/legal/:slug" element={<Suspense fallback={<SoftFallback />}><LegalDocumentPage /></Suspense>} />
+        {/* Platform-wide admin: administrators and cross-module settings. */}
+        <Route path="/global/admin/*" element={<AdminKeepAliveSlot />} />
+        <Route path="/global/*" element={<Suspense fallback={<SoftFallback />}><GlobalApp /></Suspense>} />
+        {/* UI comes from AdminModulesKeepAlive. */}
+        <Route path="/admin/*" element={<AdminKeepAliveSlot />} />
+        <Route path="/user/*" element={<RedirectToFood />} />
+        <Route path="/restaurant/*" element={<RedirectToFood />} />
+        <Route path="/delivery/*" element={<RedirectToFood />} />
+        <Route path="/usermain/*" element={<RedirectToFood />} />
+        <Route path="/profile/*" element={<RedirectToFood />} />
+        <Route path="/cart/*" element={<Navigate to="/food/user/cart" replace />} />
+        <Route path="/orders/*" element={<RedirectToFood />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      </ModuleAvailabilityGate>
+    </>
+  )
+}
+
+export default AppRoutes

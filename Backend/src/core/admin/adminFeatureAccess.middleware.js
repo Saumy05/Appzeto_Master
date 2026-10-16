@@ -1,0 +1,165 @@
+/**
+ * Enforce a sub-admin's module and feature grants, for every module's panel.
+ *
+ * One middleware rather than one per module: the catalogue already knows which
+ * feature owns which path, so the only thing that differs between panels is
+ * where the request carries its admin and what prefix to strip. Both are
+ * arguments.
+ *
+ * Superadmins pass straight through. Only a sub-admin is filtered, and it fails
+ * closed — a path no feature claims is refused rather than allowed, so adding a
+ * route to an admin panel cannot quietly hand it to everyone. Anything that
+ * should be open to any signed-in admin belongs in ALWAYS_ALLOWED_PATHS or
+ * outside the admin mount.
+ */
+import { FoodAdmin } from './admin.model.js';
+import { verifyAccessToken } from '../auth/token.util.js';
+import { isIssuedBeforePasswordChange } from '../auth/tokenRevocation.js';
+import { isSuperAdminLike, hasModuleAccess } from './adminHierarchy.service.js';
+import {
+  actionForMethod,
+  findFeatureForPath,
+  hasFeatureAction,
+  isAlwaysAllowedRequest,
+} from './adminFeatures.js';
+
+const ADMIN_FIELDS =
+  'role adminLevel admin_type module servicesAccess permissions featurePermissions isActive active passwordChangedAt';
+
+/**
+ * The subject of whatever bearer token came with this request.
+ *
+ * Every module signs a different claim — `userId` in food, `sub` in taxi, `id`
+ * in hotel — so all three are read.
+ */
+const decodeBearer = (req) => {
+  const header = String(req.headers?.authorization || '');
+  if (!header.startsWith('Bearer ')) return null;
+
+  try {
+    return verifyAccessToken(header.slice(7).trim());
+  } catch {
+    return null;
+  }
+};
+
+const subjectFromToken = (req) => {
+  const decoded = decodeBearer(req);
+  return String(decoded?.userId || decoded?.sub || decoded?.id || '');
+};
+
+/** Whether the bearer token claims an admin role, in any module's spelling. */
+const tokenClaimsAdmin = (req) => {
+  const claimed = String(req.user?.role || req.auth?.role || decodeBearer(req)?.role || '').toUpperCase();
+  return ['ADMIN', 'SUB_ADMIN', 'SUPERADMIN', 'SUPER_ADMIN'].includes(claimed);
+};
+
+/**
+ * The admin behind this request.
+ *
+ * This deliberately does not rely on a module having authenticated first.
+ * Taxi, hotel and tours all apply their `protect` inside their admin router,
+ * which is after this middleware — so reading only `req.user`/`req.auth` found
+ * nothing and waved every request through. A guard that silently passes is
+ * worse than no guard, so it resolves the admin itself and works wherever it
+ * is mounted. A request with no admin behind it is left to the module's own
+ * auth to reject.
+ */
+const resolveAdmin = async (req) => {
+  if (req.adminAccount !== undefined) return req.adminAccount;
+
+  const candidate = req.admin || req.auth?.admin || req.auth?.entity || req.user || null;
+
+  // Already a document carrying grants — nothing to load.
+  if (candidate && (candidate.featurePermissions || candidate.servicesAccess)) {
+    req.adminAccount = candidate;
+    return candidate;
+  }
+
+  const id =
+    candidate?._id || candidate?.userId || candidate?.id || req.auth?.sub || subjectFromToken(req);
+
+  if (!id) {
+    req.adminAccount = null;
+    return null;
+  }
+
+  req.adminAccount = await FoodAdmin.findById(String(id)).select(ADMIN_FIELDS).catch(() => null);
+  return req.adminAccount;
+};
+
+const deny = (res, message) => res.status(403).json({ success: false, message });
+
+/**
+ * @param {string} module - which module's panel this mount serves
+ * @param {{ stripPrefix?: string }} [options] - taxi's admin routes are declared
+ *   as `/admin/...` under a mount that is not `/admin`, so the prefix comes off
+ *   before the catalogue sees the path. `addPrefix` does the reverse for a
+ *   section mounted outside its module's admin mount.
+ */
+export const enforceAdminFeatureAccess = (module, { stripPrefix = '', addPrefix = '' } = {}) =>
+  async function adminFeatureAccess(req, res, next) {
+    try {
+      const admin = await resolveAdmin(req);
+
+      // No admin on the request means this mount is not admin-authenticated
+      // yet; leave that to whatever guard owns it rather than inventing a
+      // verdict here — unless the token says it IS an admin. Then a missing
+      // record means the admin was deleted, and passing would hand a deleted
+      // admin the panel with no limits at all (food's admin mount checks only
+      // the token's role claim, which outlives the account).
+      if (!admin) {
+        if (tokenClaimsAdmin(req)) return deny(res, 'Admin account not found');
+        return next();
+      }
+
+      if (admin.isActive === false) {
+        return deny(res, 'This admin account is deactivated');
+      }
+
+      // A token minted before the password changed is revoked. A candidate
+      // taken from req.* may not carry the field, so this reads it from the
+      // database when missing.
+      const issuedAt = decodeBearer(req)?.iat;
+      if (issuedAt != null) {
+        const changedAt = admin.passwordChangedAt !== undefined
+          ? admin
+          : await FoodAdmin.findById(admin._id).select('passwordChangedAt').lean().catch(() => null);
+        if (isIssuedBeforePasswordChange(changedAt, issuedAt)) {
+          return res.status(401).json({ success: false, message: 'Session expired after a password change. Please sign in again.' });
+        }
+      }
+
+      if (isSuperAdminLike(admin)) return next();
+
+      if (!hasModuleAccess(admin, module)) {
+        return deny(res, 'You do not have access to this module');
+      }
+
+      let path = String(req.path || '/');
+      if (stripPrefix && (path === stripPrefix || path.startsWith(`${stripPrefix}/`))) {
+        path = path.slice(stripPrefix.length) || '/';
+      }
+      // A module section mounted outside its module's admin mount (festivals,
+      // under tours) names its feature by prefix.
+      if (addPrefix) path = `${addPrefix}${path === '/' ? '' : path}`;
+
+      if (isAlwaysAllowedRequest(req.method, path)) return next();
+
+      const permission = findFeatureForPath(module, path);
+      if (!permission) {
+        return deny(res, 'You do not have access to this area');
+      }
+
+      const action = actionForMethod(req.method);
+      if (!hasFeatureAction(admin.featurePermissions || {}, permission, action)) {
+        return deny(res, `You do not have permission to ${action} this`);
+      }
+
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+export default enforceAdminFeatureAccess;

@@ -1,0 +1,81 @@
+// models/RoomType.js
+import mongoose from "mongoose";
+
+const roomTypeSchema = new mongoose.Schema({
+
+  propertyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Property",
+    required: true
+  },
+
+  name: { type: String, required: true },
+
+  inventoryType: {
+    type: String,
+    enum: ["room", "entire"],
+    required: true
+  },
+
+  roomCategory: {
+    type: String,
+    enum: ["private", "entire", "triple", "double"]
+  },
+
+  bathroomType: {
+    type: String,
+    enum: ["Attached (Private)", "Shared Complex"]
+  },
+
+  // CAPACITY
+  maxAdults: { type: Number, required: true },
+  maxChildren: { type: Number, default: 0 },
+
+  // INVENTORY COUNT
+  bedsPerRoom: {
+    type: Number
+  },
+  totalInventory: {
+    type: Number,
+    required: true
+  },
+
+  // PRICING (PER NIGHT – SINGLE SOURCE OF TRUTH)
+  pricePerNight: { type: Number, required: true },
+
+  /**
+   * Date-range overrides for `pricePerNight`.
+   *
+   * A stay is priced night by night: each night takes the rate of the first
+   * active season covering it, and `pricePerNight` where none does. Ranges are
+   * inclusive of `startDate` and `endDate`, and a night belongs to its
+   * check-in date — the check-out date is never charged.
+   */
+  seasonalRates: [
+    {
+      name: { type: String, required: true, trim: true },
+      startDate: { type: Date, required: true },
+      endDate: { type: Date, required: true },
+      pricePerNight: { type: Number, required: true, min: 0 },
+      isActive: { type: Boolean, default: true }
+    }
+  ],
+  extraAdultPrice: { type: Number, default: 0 },
+  extraChildPrice: { type: Number, default: 0 },
+  securityDeposit: { type: Number, default: 0 },
+
+  // MEDIA
+  images: {
+    type: [String],
+    default: []
+  },
+
+  amenities: [String],
+
+  availableFrom: { type: String },
+
+  isActive: { type: Boolean, default: true }
+
+}, { timestamps: true });
+
+export default mongoose.model("RoomType", roomTypeSchema);
