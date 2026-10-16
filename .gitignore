@@ -106,3 +106,24 @@ backups/
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+
+# ─── Only Backend & Frontend are tracked ─────────────────────────────────────
+# Exclude everything in repository root
+/*
+!/.gitignore
+!/README*
+!/LICENSE*
+!/Backend/
+!/Frontend/
+
+# Explicit directory exclusions
+/apps/
+/deploy/
+/docs/
+/flutter/
+/mobile-admin/
+/mobile-delivery/
+/mobile-driver/
+/mobile-restaurant/
+/mobile-user/
+/.easignore
