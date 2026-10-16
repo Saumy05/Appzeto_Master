@@ -133,22 +133,31 @@ export default function RestaurantLogin() {
       return
     }
 
+    const clean = currentPhone.replace(/\D/g, "")
+    const isTestPhone = ['9876543210', '9876543211', '9876543212', '9876543213'].some(p => clean.endsWith(p))
     const blockKey = getBlockKey(currentPhone)
     const resendKey = getResendKey(currentPhone)
 
-    // Resume block timer
-    const savedBlockExpiry = sessionStorage.getItem(blockKey)
-    if (savedBlockExpiry) {
-      const remaining = Math.max(0, Math.floor((parseInt(savedBlockExpiry) - Date.now()) / 1000))
-      if (remaining > 0) {
-        setBlockTimer(remaining)
-      } else {
-        sessionStorage.removeItem(blockKey)
+    if (isTestPhone) {
+      sessionStorage.removeItem(blockKey)
+      sessionStorage.removeItem("restaurant_block_expires_at")
+      sessionStorage.removeItem(`otp_blocked_${clean}`)
+      setBlockTimer(0)
+    } else {
+      // Resume block timer
+      const savedBlockExpiry = sessionStorage.getItem(blockKey)
+      if (savedBlockExpiry) {
+        const remaining = Math.max(0, Math.floor((parseInt(savedBlockExpiry) - Date.now()) / 1000))
+        if (remaining > 0) {
+          setBlockTimer(remaining)
+        } else {
+          sessionStorage.removeItem(blockKey)
+        }
+      } else if (location.state?.initialBlockMins) {
+        const seconds = Math.ceil(location.state.initialBlockMins * 60)
+        setBlockTimer(seconds)
+        sessionStorage.setItem(blockKey, (Date.now() + (seconds * 1000)).toString())
       }
-    } else if (location.state?.initialBlockMins) {
-      const seconds = Math.ceil(location.state.initialBlockMins * 60)
-      setBlockTimer(seconds)
-      sessionStorage.setItem(blockKey, (Date.now() + (seconds * 1000)).toString())
     }
 
     // Resume resend timer
