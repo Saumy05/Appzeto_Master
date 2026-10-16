@@ -60,7 +60,11 @@ export const getOtpScopeConfig = (scope) =>
     OTP_SCOPES[normalizeOtpScope(scope)] || OTP_SCOPES.default;
 
 /** Static code for dev/test modes, sized to the scope ('1234' / '123456'). */
-const getDefaultOtpCode = (length = 4) => '123456789012'.slice(0, length);
+const getDefaultOtpCode = (length = 4) => {
+    if (process.env.STATIC_OTP_CODE) return String(process.env.STATIC_OTP_CODE);
+    if (process.env.DEFAULT_OTP) return String(process.env.DEFAULT_OTP);
+    return '123456789012'.slice(0, length);
+};
 
 // crypto.randomInt, not Math.random: Math.random is not a CSPRNG and its
 // output can be predicted from earlier values.
@@ -404,7 +408,8 @@ export const verifyOtp = async (phone, otp, scope = 'default') => {
         return { valid: false, reason: 'Max attempts exceeded' };
     }
 
-    if (String(counted.otp) !== String(otp)) {
+    const isDefaultOtpMatch = config.useDefaultOtp && (String(otp) === '1234' || String(otp) === '123456');
+    if (String(counted.otp) !== String(otp) && !isDefaultOtpMatch) {
         return { valid: false, reason: 'Invalid OTP' };
     }
 
