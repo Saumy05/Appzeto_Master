@@ -181,7 +181,7 @@ export const HomeScreen = () => {
             title="TOURIST PLACES"
             subtitle={`Scenic Spots &\nHidden Trails`}
             icon="fa-solid fa-location-dot"
-            image="https://lh3.googleusercontent.com/aida-public/AB6AXuDNCBOtk-v5CpAuzZ1kd7mndMkJZKKwMy00a2zicQ0HpEEfpw427eAibYCSi2nD2wHFUkrbD1pzwIzejGOFn5WqC6zu_oE1z2PO5Z2B1LMuzEvrGDcapXZ2xU8jST_VXGR9TxKd25HsrNfffLqEY_Xm1289lDT9d4F7I68sPPhKOmC33cLzcrcIo7RfCXTsf-KCLrE92u-ebldONSuUSfat64_5N4AFn8Z0bfjeYXSmC8Y2I5u8t3g1"
+            image="/places/appzeto_viewpoint_sign.jpg"
             buttonText="Explore Places"
             buttonBg="bg-[#044e29]"
             gradientClass="bg-gradient-to-b from-[#10b981] via-[#059669] to-[#044e29]"

@@ -11,8 +11,8 @@ export const PLACES_DATA = [
     travelTime: '15 min (Approx.)',
     bestTime: 'October to March (Sunrise & Sunset all year)',
     idealFor: 'Photography, Sightseeing, Relaxation, Nature Walks',
-    mainImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCR1S42BYEdvdC8fBzDJ3dgfRWo5cmdzuf01VwynFEOO2zAbH3hgjPCALgGwzJBIaE8aPLRDZHrZHblgHmhttj0wh1tqEvt8-N3FHbJ2nBvO-NI7DPzgijaQCZbSsd-Gbs-iwXmtnLY1RhTE1ZRVBypIMpDFedyjqrzb7IHqCD8alrIgaNCfWSZf3EA_Gcolyb2iCYmvk9AHidCREdBzSSS_P5Yxxzymt2zVcwbF0YtUMSO1QvxyypW',
-    heroImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB65o8Pxoy9vk0GEfzlmgagRDDH5vmoIHtlwW2yUvGRQW6pmdC66hW0wpw8b6mYbJo9pMDmOfnhKAC7kHmGV3YMtjTEPDTI-_0cWqpFN7Af75GKhEGGnmFpI51V5I3B1n2jQEL955u_oSFcCNcgtfvvLgjLHAZv0vZfHeY6B4Hl0-2ZndLeOnccCmnpKX-X0g2pQQr7t7OSebUNzomX_eWrNW_5hJUTWXek6xnrAk38zmG_1Pi04BdD',
+    mainImage: '/places/appzeto_viewpoint_sign.jpg',
+    heroImage: '/places/appzeto_panorama_sign.jpg',
     insetImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnndqgysVmvho-y1_bZpIPzl1HctAeUVACCFuIQ4z0APfvtUbML_eCA8vXJoL7f6reH6vBnSQeEk_-VkXgHjXthXbK796zeXJPmTy7iEfPEd6DJdcfrCnOQ-EtHU-7C_xz6JzZHDhRNfh9-3o5n5YxIEsZcddTJ9hvFWxFTQfUgWluETRlx5lfkrahwv7fMJFjXWuOvzPvF4L8hXFzHTOOdIKYYb75jNzggAwCw8KgCEoNGc1YMGlc',
     description: 'Famous for the mysterious bird phenomenon during monsoon evenings. The viewpoint offers breathtaking sunsets and panoramic views. The nearby Shivrai Temple is a peaceful spiritual place.',
     aboutDetails: [
@@ -25,7 +25,8 @@ export const PLACES_DATA = [
       { icon: 'fa-solid fa-sun', text: 'Sunset Point', color: 'text-orange-500' }
     ],
     gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDOIy33K6HgCYitmbZ0VU0ymObFtBm5hFJsQBgkGSJ1ZRi_65fm62F7h4Uns22U6XIitLBmySu8s-86I294LEYgjaqUjm7IJzIISXNngpHmVYBYbL1PBsV2rTDYQpw72vACKUeYU0UUA0YWRWZEOYFNhBWAYe23cO5WpuIORbM-Z7_kH-__cvnHzgex8K7nHOEYPP3bRlQezqjRxTSLt-MnP7voTog-B9i73E7-D8i7cw8Yz66-Iizt',
+      '/places/appzeto_panorama_sign.jpg',
+      '/places/appzeto_viewpoint_sign.jpg',
       'https://lh3.googleusercontent.com/aida-public/AB6AXuChuIPULSBosVofasDYW9AmGaz5ZV-qkilS4Nc-tALMfNlSHXae0imk8NdMAoDKSMTqwUWN2uFhUTKBSDJYE8Qq5MXBAoue_Z37ZtTns-ZduAexKKRJgYAFj7fLG14em1WUIrDZzkZV3m23Qy7JptrdM_fA8muEZNiyKeFE9DJsvi1o5YAuWWkYn4fmMMDX2o24GmQ9QdH4m2Is2kKT1HWo1FJ_yUUrils3B2nWOuxyiYAEGN9B6b5b',
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCsS00MSrPm0HYVOMLcku84z-0qVykOUIu0X83ZeZoKkddMRzFhaX0xewaGHvTub4o7leIiBstK8qEwdJ5kYkc6pX0WPSGhoRe-_kNeyLxo2q-Zf9BWwzPZtsJ3g0Mdmp1IY-MIq5ZICzgQbjNbwvyhUh2dJeq54QNhNvIoJJh25nINZcRsCMSkB7oyS9vJwibE1e94ENhEYtVatd3VCCJ9cSpAMCdbesOERK9_PvHLyqum_KMIpl7o',
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBGxDzlZ5RQUEgxmMC7cC35NHVDTUGdfOMucA9JqwYrGxAHXvz51uAlP1b189RsrQDSJwuleu9E-jfA7NX-sGCDZ37Mqov1eab6Z9R6dl0-PvT7ohUYmV5nLa3hvR8W-GKY_lCcH1Ua1gLpCe6ca2sHB57eW3vInSGeRlLZy865oSD7fsbAUzDbKpEL1UHSokVL8B4xNfknRYAUpjmgOPHu8WoyUjKDYv-seQk5-iI5xNzRsloXwJGB',
@@ -70,7 +71,7 @@ export const PLACES_DATA = [
     ],
     gallery: [
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBXi2ZL8A9d6xh4eTNmtYQjrrm2eXevSbbq7AM8cec1gAAGRhO5iaDNLcXgpt3Ni3xqaMLiOKVbn5jPfxLgauo6ZSfyyWUCHXQsRiDIJjkX796WSnav0VI6DhcRJreMW6lZKSwYO7klZC8rnjeYjQxepwv_UDdf-IBgeUFipTd-BPADaUSyULhlZOf5e33u4UQeFc0ui3ed4pGxvFaPhi-IL7aPxN6YGlJHbWygfV2Hlgayr2K-jHaQ',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDOIy33K6HgCYitmbZ0VU0ymObFtBm5hFJsQBgkGSJ1ZRi_65fm62F7h4Uns22U6XIitLBmySu8s-86I294LEYgjaqUjm7IJzIISXNngpHmVYBYbL1PBsV2rTDYQpw72vACKUeYU0UUA0YWRWZEOYFNhBWAYe23cO5WpuIORbM-Z7_kH-__cvnHzgex8K7nHOEYPP3bRlQezqjRxTSLt-MnP7voTog-B9i73E7-D8i7cw8Yz66-Iizt',
+      '/places/appzeto_panorama_sign.jpg',
       'https://lh3.googleusercontent.com/aida-public/AB6AXuChuIPULSBosVofasDYW9AmGaz5ZV-qkilS4Nc-tALMfNlSHXae0imk8NdMAoDKSMTqwUWN2uFhUTKBSDJYE8Qq5MXBAoue_Z37ZtTns-ZduAexKKRJgYAFj7fLG14em1WUIrDZzkZV3m23Qy7JptrdM_fA8muEZNiyKeFE9DJsvi1o5YAuWWkYn4fmMMDX2o24GmQ9QdH4m2Is2kKT1HWo1FJ_yUUrils3B2nWOuxyiYAEGN9B6b5b'
     ],
     mapImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB4zhn3tIUeHxlu9zJN7wWvmeZ5tXI7TUZcnw8SXHepTdDqFJGXsqF8mGwORduEBWePjXmYiEtDU5Zdb79UsrfNSjZ-O5ynnCTqYhRac4VIe80rX2if6KULUUKpdwkxdLDu0UwKqJtqghq0Brcke8zaAOUj3w1EBrQukVFsdwj_lVniRlZos7j5Fyw2QzPLfcDbOWYcQfwDdonzn7JOgMXetKordEiSYoCeCi1-MdHUXMqPxMY-6MPY',
@@ -111,7 +112,7 @@ export const PLACES_DATA = [
     gallery: [
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAJOmVn8J7y0XtU_CzS5fuBp9op-62F78mTvCvZlchAdzruqs-vXdByV16hQrL2AFth2YfoMqo5LhbPaclGFfPEwMVCZ_jMOD51w5RHud1v4ay5i2PYZHZa19BVtLiS2Py3n4XBCQjppa9_yjTimzR6bDlc45CEj8yhTtT5y9gJSlHFi3K6GJ5JXv1fUW4f6nWcU0owIga29YigAyfVgR_ryUU7IDxvikwxhJ8ZFgtYd-XTljzZxeRo',
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAwtntIzjpIuKW4YygP97_oytQQLHKZGp_LS0stxpS-e2ifHlTdW072m5Nn7lrk4YXIPE3i0gulIslJKYblI5O7xlJ94u761qsCzef_FfoVibC16-tKLdrW-EnaNezOb41Pbg74GbiXbxZkF2FLKu9bFALyv5XbZCwBolXJjjhhIYyObP_F55jjWzEeK2CVpZxED__z_OjKzT0tUC8Ak6bgIiHR2u6C9LkM57ZlNix7uIi8KiwJBFvP',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDOIy33K6HgCYitmbZ0VU0ymObFtBm5hFJsQBgkGSJ1ZRi_65fm62F7h4Uns22U6XIitLBmySu8s-86I294LEYgjaqUjm7IJzIISXNngpHmVYBYbL1PBsV2rTDYQpw72vACKUeYU0UUA0YWRWZEOYFNhBWAYe23cO5WpuIORbM-Z7_kH-__cvnHzgex8K7nHOEYPP3bRlQezqjRxTSLt-MnP7voTog-B9i73E7-D8i7cw8Yz66-Iizt'
+      '/places/appzeto_panorama_sign.jpg'
     ],
     mapImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB4zhn3tIUeHxlu9zJN7wWvmeZ5tXI7TUZcnw8SXHepTdDqFJGXsqF8mGwORduEBWePjXmYiEtDU5Zdb79UsrfNSjZ-O5ynnCTqYhRac4VIe80rX2if6KULUUKpdwkxdLDu0UwKqJtqghq0Brcke8zaAOUj3w1EBrQukVFsdwj_lVniRlZos7j5Fyw2QzPLfcDbOWYcQfwDdonzn7JOgMXetKordEiSYoCeCi1-MdHUXMqPxMY-6MPY',
     routeOverviewImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5j2IwgOANlRiyn4G-hWEa6kjfN3Bn8ZxOnm5zSqkvFdxXc4Si5_qPH8LuqmV5sbPUfJPUQVEOEj-VastKPFBIYnqXBBmcczt5EREh9Z0ZsC7qwUZtaB3Ext24tsatrfOe_-czcyVoigKY-FK-Cf7egZF28huoOGqPFu2QtbnWDLUoZLXFHrkEKeam6fVRoRuB_7mpglvWs_IdcDdqWcSPNe0vqnUD62WijysL39vzeqL6upcRm28V',
