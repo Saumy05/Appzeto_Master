@@ -439,7 +439,7 @@ export default function RestaurantOTP() {
             <img 
               src={RESTAURANT_BRAND_LOGO} 
               onError={logoFallback}
-              alt="Dima Hasao" 
+              alt="Appzeto" 
               className="h-28 -mb-3.5 object-contain drop-shadow-md" 
             />
             <h2 className="text-[25px] font-extrabold text-[#0A4D2B] dark:text-red-400 tracking-tight font-['Outfit']">

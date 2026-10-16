@@ -2,12 +2,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PatternDivider } from './PatternDivider';
 import AppBottomNav from '@/shared/components/app/AppBottomNav';
-import '../../dimahasao.css';
+import '../../appzeto.css';
 import { isImmersiveRoute } from '@/shared/components/app/immersiveRoutes';
 
-// The v1 Dima Hasao header, for wrapping the Hello-Parth food/taxi/hotel
+// The v1 Appzeto header, for wrapping the Hello-Parth food/taxi/hotel
 // modules. Deliberately standalone: it uses the host router directly and takes
-// no BookingContext, so it can render outside the DimaHasao route tree.
+// no BookingContext, so it can render outside the Appzeto route tree.
 export const ModuleHeader = ({ title, subtitle, backTo = '/app' }) => {
   const navigate = useNavigate();
 

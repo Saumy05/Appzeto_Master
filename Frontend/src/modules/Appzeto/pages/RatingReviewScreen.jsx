@@ -33,7 +33,7 @@ export const RatingReviewScreen = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    showToast('Thank you for rating your Dima Hasao experience! ⭐');
+    showToast('Thank you for rating your Appzeto experience! ⭐');
     navigate('/bookings');
   };
 

@@ -20,7 +20,7 @@ export const TOUR_PACKAGES_DATA = [
     ],
     destinations: ['Haflong Lake', 'Jatinga Viewpoint', 'Shivrai Temple', 'Hanging Bridge'],
     highlights: [
-      'Sunset at the iconic "I Love Dima Hasao" viewpoint in Jatinga',
+      'Sunset at the iconic "I Love Appzeto" viewpoint in Jatinga',
       'Boat ride across Haflong Lake & walk on the British-era hanging bridge',
       'Authentic tribal dinner with traditional bamboo-smoked delicacies',
       'Dedicated private taxi and local certified Dimasa guide'

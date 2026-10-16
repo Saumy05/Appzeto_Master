@@ -395,7 +395,7 @@ export default function FeedNavbar({ className = "" }) {
         <img
           src={DRIVER_BRAND_LOGO}
           onError={logoFallback}
-          alt="Dima Hasao Tourism"
+          alt="Appzeto Tourism"
           className="h-8 w-8 object-contain"
         />
         <div className="relative" style={{ zIndex: 100 }}>

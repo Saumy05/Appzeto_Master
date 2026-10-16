@@ -11,20 +11,20 @@ dotenv.config();
 const DEFAULTS = {
   admin: {
     email: "helloparthindia@gmail.com",
-    password: "Dima Hasao@2026",
-    name: "Dima Hasao Admin",
+    password: "Appzeto@2026",
+    name: "Appzeto Admin",
     servicesAccess: ["food", "quickCommerce", "taxi"],
   },
   user: {
     phone: "9407046608",
     countryCode: "+91",
-    name: "Dima Hasao User",
+    name: "Appzeto User",
   },
   restaurant: {
     phone: "9009925021",
     countryCode: "+91",
-    restaurantName: "Dima Hasao Demo Restaurant",
-    ownerName: "Dima Hasao Restaurant Owner",
+    restaurantName: "Appzeto Demo Restaurant",
+    ownerName: "Appzeto Restaurant Owner",
     ownerEmail: "restaurant@helloparth.com",
     city: "Bhopal",
     state: "Madhya Pradesh",
@@ -33,7 +33,7 @@ const DEFAULTS = {
   delivery: {
     phone: "7610416911",
     countryCode: "+91",
-    name: "Dima Hasao Delivery Partner",
+    name: "Appzeto Delivery Partner",
     city: "Bhopal",
     state: "Madhya Pradesh",
     vehicleType: "bike",

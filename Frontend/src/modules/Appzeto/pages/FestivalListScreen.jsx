@@ -129,7 +129,7 @@ export const FestivalListScreen = () => {
         {/* All Festivals List */}
         <div className="space-y-3">
           <h3 className="font-montserrat font-bold text-sm text-gray-900 px-1">
-            Official Dima Hasao Festivals
+            Official Appzeto Festivals
           </h3>
 
           {festivals.map((fest, idx) => (

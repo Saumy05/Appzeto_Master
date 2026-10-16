@@ -87,7 +87,7 @@ const RequirePartner = () => {
 };
 
 /**
- * Paints the whole partner panel in the Dima Hasao palette.
+ * Paints the whole partner panel in the Appzeto palette.
  *
  * The panel's brand colour is baked into the pages as Tailwind arbitrary
  * classes, so partnerTheme.css recolours them from this one wrapper rather than

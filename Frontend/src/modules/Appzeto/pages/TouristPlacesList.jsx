@@ -56,7 +56,7 @@ export const TouristPlacesList = () => {
       {/* Header */}
       <Header
         title="TOURIST PLACES"
-        subtitle="Explore the Beauty of Dima Hasao"
+        subtitle="Explore the Beauty of Appzeto"
         showBack={true}
         rightAction="search"
         onSearchClick={() => setShowSearchInput(!showSearchInput)}
@@ -161,7 +161,7 @@ export const TouristPlacesList = () => {
           <span className="text-emerald-400 mr-1.5">
             <i className="fa-solid fa-leaf"></i>
           </span>
-          Plan your trip, stay safe <br /> and enjoy the beauty of Dima Hasao!
+          Plan your trip, stay safe <br /> and enjoy the beauty of Appzeto!
         </p>
 
         <div className="mt-3 flex justify-center gap-1 opacity-60">

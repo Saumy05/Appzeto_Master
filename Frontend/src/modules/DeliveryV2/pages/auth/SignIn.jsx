@@ -753,7 +753,7 @@ export default function DeliverySignIn() {
             <img
               src={DRIVER_BRAND_LOGO}
               onError={logoFallback}
-              alt="Dima Hasao"
+              alt="Appzeto"
               className="h-28 -mb-3.5 object-contain drop-shadow-md"
             />
             <h2 className="text-[25px] font-extrabold bg-gradient-to-r from-[#0A4D2B] to-[#06336B] dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent tracking-tight font-['Outfit'] pb-0.5">

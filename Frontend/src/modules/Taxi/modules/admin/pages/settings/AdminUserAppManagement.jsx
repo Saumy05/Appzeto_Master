@@ -43,7 +43,7 @@ const defaultSettings = {
     { id: '4', title: 'Outstation', image: '', route: '/taxi/user/intercity', order: 4, status: 'active' }
   ],
   promos: [
-    { id: '1', title: 'Rides across Dima Hasao', subtitle: 'Haflong, Maibang, Umrangso and everywhere between.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
+    { id: '1', title: 'Rides across Appzeto', subtitle: 'Haflong, Maibang, Umrangso and everywhere between.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
     { id: '2', title: 'Heading out of the district?', subtitle: 'Book an outstation cab to Silchar, Guwahati or Lumding.', image: '', route: '/taxi/user/intercity', order: 2, status: 'active' }
   ],
   goPlaces: [
@@ -52,7 +52,7 @@ const defaultSettings = {
     { id: '3', title: 'Outstation trips', image: '', route: '/taxi/user/intercity', order: 3, status: 'active' }
   ],
   footer: {
-    hashtag: '#DimaHasao',
+    hashtag: '#Appzeto',
     line1: 'Made for the district',
     line2: 'Crafted for riders'
   }
@@ -89,7 +89,7 @@ const AdminUserAppManagement = ({ tab: initialTab }) => {
         const bannersData = bannersRes.data?.data?.results || bannersRes.data?.results || bannersRes.data || [];
         fetchedPromos = bannersData.map((b, idx) => ({
           id: b._id || b.id || String(idx + 1),
-          title: b.title || 'Experience A New Standard With Dima Hasao',
+          title: b.title || 'Experience A New Standard With Appzeto',
           subtitle: b.subtitle || 'A premier private hire service where luxury and reliability converge.',
           imageUrl: b.image || '',
           image: b.image || '',
@@ -554,7 +554,7 @@ const AdminUserAppManagement = ({ tab: initialTab }) => {
                     value={settings.footer.hashtag}
                     onChange={(e) => handleFooterChange('hashtag', e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#405189] text-[13px] font-semibold"
-                    placeholder="#DimaHasao"
+                    placeholder="#Appzeto"
                   />
                 </div>
                 <div>

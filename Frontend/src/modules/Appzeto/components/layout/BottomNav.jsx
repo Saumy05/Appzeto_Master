@@ -58,7 +58,7 @@ export const BottomNav = () => {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.92 }}
                     onClick={() => navigate('/places')}
-                    aria-label="Explore Dima Hasao"
+                    aria-label="Explore Appzeto"
                     className="absolute -top-4 bg-[#06381e] rounded-full p-0.5 shadow-[0_6px_20px_rgba(0,0,0,0.55)] w-[58px] h-[58px] flex items-center justify-center border-[3.5px] border-[#06381e] cursor-pointer z-20"
                   >
                     <img

@@ -9,4 +9,4 @@ export {
   authLabelClass,
   authInputClass,
   authButtonClass,
-} from '@/shared/components/auth/DimaHasaoAuthShell';
+} from '@/shared/components/auth/AppzetoAuthShell';

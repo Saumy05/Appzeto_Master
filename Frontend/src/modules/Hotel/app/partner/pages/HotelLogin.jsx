@@ -4,12 +4,12 @@ import { Phone, User, Mail, ArrowRight, Loader2, Shield, Building2 } from 'lucid
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../../services/apiService';
 import { HOTEL_BRAND_LOGO } from '@/shared/constants/brandLogo';
-import DimaHasaoAuthShell, {
+import AppzetoAuthShell, {
     authFieldClass,
     authLabelClass,
     authInputClass,
     authButtonClass,
-} from '@/shared/components/auth/DimaHasaoAuthShell';
+} from '@/shared/components/auth/AppzetoAuthShell';
 import AuthLegalLinks from "@/shared/components/auth/AuthLegalLinks"
 
 const HotelLogin = () => {
@@ -157,10 +157,10 @@ const HotelLogin = () => {
     };
 
     return (
-        <DimaHasaoAuthShell
+        <AppzetoAuthShell
       logo={HOTEL_BRAND_LOGO}
             width="760px"
-            blurb="List your hotel, resort, lodge or homestay and take bookings from travellers exploring Dima Hasao."
+            blurb="List your hotel, resort, lodge or homestay and take bookings from travellers exploring Appzeto."
             points={["Resorts", "Hotels", "Lodges", "Homestays"]}
         >
             <AnimatePresence mode="wait">
@@ -357,7 +357,7 @@ const HotelLogin = () => {
         className="dh-montserrat mt-7 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5d7264]"
         linkClassName="transition-colors hover:text-[#caa83e]"
       />
-    </DimaHasaoAuthShell>
+    </AppzetoAuthShell>
     );
 };
 

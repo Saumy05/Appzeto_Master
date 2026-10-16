@@ -1,5 +1,5 @@
 /**
- * Dima Hasao super-app vertical colours
+ * Appzeto super-app vertical colours
  * - Food: v1 deep-emerald header with gold accent
  * - Inactive tabs: navy (same on Food & Taxi home)
  */

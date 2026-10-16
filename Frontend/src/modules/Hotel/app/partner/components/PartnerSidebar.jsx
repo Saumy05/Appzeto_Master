@@ -91,7 +91,7 @@ const PartnerSidebar = ({ isOpen, onClose }) => {
                 { icon: HelpCircle, label: 'Help & Support', path: '/hotel/support' },
                 { icon: FileText, label: 'Terms & Conditions', path: '/hotel/terms' },
                 { icon: Shield, label: 'Privacy Policy', path: '/hotel/privacy' },
-                { icon: Info, label: 'About Dima Hasao Partner', path: '/hotel/about' },
+                { icon: Info, label: 'About Appzeto Partner', path: '/hotel/about' },
                 { icon: Phone, label: 'Contact Support', path: '/hotel/contact' },
                 { icon: Settings, label: 'Settings', path: '/hotel/settings' },
             ]
@@ -122,9 +122,9 @@ const PartnerSidebar = ({ isOpen, onClose }) => {
                         <div className="flex-1 overflow-y-auto pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                             <div className="flex items-center justify-between p-5 pb-2">
                                 <div className="flex flex-col items-start leading-none">
-                                    <span className="text-lg font-black tracking-tight flex items-center gap-1">
-                                        <span className="text-[#0a4d2b]">Dima</span>
-                                        <span className="text-amber-600">Hasao</span>
+                                    <span className="text-lg font-black tracking-tight flex items-center">
+                                        <span className="text-[#0a4d2b]">App</span>
+                                        <span className="text-amber-600">zeto</span>
                                 </span>
                                 <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">Partner</span>
                             </div>

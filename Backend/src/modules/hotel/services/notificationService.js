@@ -45,7 +45,7 @@ class NotificationService {
     }
 
     const { results } = await sendPushNotification([fcmToken], {
-      title: notification?.title || process.env.APP_NAME || 'Dima Hasao',
+      title: notification?.title || process.env.APP_NAME || 'Appzeto',
       body: notification?.body || '',
       data: stringifiedData,
       link: data?.url || '/',
@@ -102,7 +102,7 @@ class NotificationService {
         savedNotification = await Notification.create({
           userId: user._id,
           userType: userType, // 'user' or 'admin'
-          title: notification.title || process.env.APP_NAME || 'Dima Hasao',
+          title: notification.title || process.env.APP_NAME || 'Appzeto',
           body: notification.body || '',
           data: data || {},
           type: data.type || 'general',

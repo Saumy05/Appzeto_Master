@@ -67,7 +67,7 @@ export function HotelBusinessFields({ values, onChange }) {
     <div className="space-y-4">
       <div>
         <label className={fieldLabel}>Business / contact name</label>
-        <input value={values.businessName} onChange={set('businessName')} placeholder="e.g. Hasao Heritage Stays" className={fieldInput} />
+        <input value={values.businessName} onChange={set('businessName')} placeholder="e.g. Appzeto Heritage Stays" className={fieldInput} />
       </div>
       <div>
         <label className={fieldLabel}>Owner's full name</label>

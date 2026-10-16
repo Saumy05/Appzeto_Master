@@ -9,7 +9,7 @@ export async function getBusinessSettings(req, res, next) {
             // Create default settings if none exist
             // Contact details belong to Global Settings now; seeding one here
             // is how the previous product's address ended up on this one.
-            settings = await FoodBusinessSettings.create({ companyName: 'Dima Hasao' });
+            settings = await FoodBusinessSettings.create({ companyName: 'Appzeto' });
         }
         return sendResponse(res, 200, 'Business settings fetched successfully', settings);
     } catch (error) {

@@ -10,12 +10,12 @@ import {
 } from "@food/utils/auth"
 import { clearOnboardingFromLocalStorage, clearAllFilesFromDB, checkOnboardingStatus, isRestaurantOnboardingComplete } from "@/modules/Food/utils/onboardingUtils"
 import { collectFcmTokenFast, persistModuleFcmToken } from "@food/utils/firebaseMessaging"
-import DimaHasaoAuthShell, {
+import AppzetoAuthShell, {
   authFieldClass,
   authLabelClass,
   authInputClass,
   authButtonClass,
-} from "@/shared/components/auth/DimaHasaoAuthShell"
+} from "@/shared/components/auth/AppzetoAuthShell"
 import { RESTAURANT_BRAND_LOGO } from "@/shared/constants/brandLogo"
 import AuthLegalLinks from "@/shared/components/auth/AuthLegalLinks"
 import { requestPartnerOtp, verifyPartnerOtp } from "@/services/api/auth"
@@ -547,7 +547,7 @@ export default function RestaurantLogin() {
   }
 
   return (
-    <DimaHasaoAuthShell
+    <AppzetoAuthShell
       logo={RESTAURANT_BRAND_LOGO}
       width="880px"
       blurb="Manage your menu, take orders and track payouts across the district's food network."
@@ -808,6 +808,6 @@ export default function RestaurantLogin() {
       />
       </>
       )}
-    </DimaHasaoAuthShell>
+    </AppzetoAuthShell>
   )
 }

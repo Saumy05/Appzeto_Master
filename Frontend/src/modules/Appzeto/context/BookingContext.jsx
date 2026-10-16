@@ -22,7 +22,7 @@ export const BookingProvider = ({ children }) => {
   // (set by setUnifiedAuthData on login) before falling back to the local record.
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('dima_user');
+      const saved = sessionStorage.getItem('appzeto_user') || sessionStorage.getItem('dima_user');
       if (saved) return JSON.parse(saved);
 
       if (isModuleAuthenticated('user')) {
@@ -249,18 +249,19 @@ export const BookingProvider = ({ children }) => {
     // Whoever was cached before this is not the person signing in now.
     clearCache();
     const newUser = {
-      name: profile?.name || 'Dima Explorer',
+      name: profile?.name || 'Appzeto Explorer',
       phone: profile?.phone || phone || '',
       id: profile?._id || profile?.id || null,
       isLoggedIn: true
     };
     setUser(newUser);
-    sessionStorage.setItem('dima_user', JSON.stringify(newUser));
-    showToast('Welcome to Dima Hasao! 🌿');
+    sessionStorage.setItem('appzeto_user', JSON.stringify(newUser));
+    showToast('Welcome to Appzeto! 🌿');
   };
 
   const logout = () => {
     setUser({ name: 'Guest', phone: '', isLoggedIn: false });
+    sessionStorage.removeItem('appzeto_user');
     sessionStorage.removeItem('dima_user');
     clearAuthData();
     // Cached bookings and orders belong to the person who just left. Clearing

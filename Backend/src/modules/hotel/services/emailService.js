@@ -11,7 +11,7 @@ import { sendEmail as sendPlatformEmail } from '../../../core/notifications/emai
 class EmailService {
   constructor() {
     this.brandColor = '#0F766E';
-    this.companyName = String(process.env.EMAIL_FROM_NAME || process.env.APP_NAME || 'Dima Hasao').trim();
+    this.companyName = String(process.env.EMAIL_FROM_NAME || process.env.APP_NAME || 'Appzeto').trim();
     this.logoUrl = '';
   }
 

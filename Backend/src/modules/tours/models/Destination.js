@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 /**
- * A tourist destination in Dima Hasao.
+ * A tourist destination in Appzeto.
  *
- * Scope of work section 9, "Dima Hasao Tourism Module" — the destination
+ * Scope of work section 9, "Appzeto Tourism Module" — the destination
  * directory. Lives in the tours module because the same document lists
  * "Destination management" under Tour Management in the admin panel.
  *

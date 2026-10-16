@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 export const Header = ({
   title = 'TOURIST PLACES',
-  subtitle = 'Explore the Beauty of Dima Hasao',
+  subtitle = 'Explore the Beauty of Appzeto',
   showBack = true,
   rightAction = 'search', // 'search' | 'favorite' | 'none'
   placeId = null,

@@ -1,5 +1,5 @@
 ﻿export const APP_CONFIG = {
-  NAME: 'Dima Hasao',
+  NAME: 'Appzeto',
   VERSION: '1.0.0',
 };
 

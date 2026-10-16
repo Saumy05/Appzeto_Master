@@ -9,7 +9,7 @@ export const WhyVisitGrid = () => {
     <>
       <div className="bg-[#fcf8ed] rounded-2xl p-3 shadow-sm border border-orange-200/70 mx-3 mb-24" data-purpose="why-visit">
         <h3 className="text-center font-bold text-gray-900 mb-2.5 text-xs sm:text-sm">
-          Why Visit Dima Hasao?
+          Why Visit Appzeto?
         </h3>
 
         <div className="grid grid-cols-4 gap-1.5">

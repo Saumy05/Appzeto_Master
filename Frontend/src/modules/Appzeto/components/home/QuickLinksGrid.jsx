@@ -60,7 +60,7 @@ export const QuickLinksGrid = () => {
     },
     events: {
       title: 'Events & Festivals',
-      desc: 'Experience the colorful cultural heritage of Dima Hasao.',
+      desc: 'Experience the colorful cultural heritage of Appzeto.',
       items: ['Falcon Festival (Umrangso) - Nov/Dec', 'Busu Dima (Harvest Festival) - Jan', 'Judima Tribal Festival - Dec', 'Haflong Hills Music Fest - Spring'],
       actionText: 'Explore Festival Calendar'
     },
@@ -72,7 +72,7 @@ export const QuickLinksGrid = () => {
     },
     emergency: {
       title: 'Emergency Help & SOS',
-      desc: 'Direct emergency hotlines for visitors in Dima Hasao district.',
+      desc: 'Direct emergency hotlines for visitors in Appzeto district.',
       items: ['Police Control Room: 112 / 03673-236224', 'Haflong Civil Hospital: 03673-236222', 'Tourist Police Helpline: +91 94350 99999', 'Disaster Management: 1077'],
       actionText: 'Call Emergency: 112',
       actionLink: 'tel:112',

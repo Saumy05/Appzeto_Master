@@ -25,7 +25,7 @@ export const NotificationsDrawer = () => {
     },
     {
       id: 3,
-      title: 'Welcome to Dima Hasao Tourism',
+      title: 'Welcome to Appzeto Tourism',
       desc: 'Thank you for exploring our hills! Enjoy verified taxi rides & registered eco guides.',
       time: '3 days ago',
       icon: 'fa-solid fa-leaf',

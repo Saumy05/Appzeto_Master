@@ -1,5 +1,5 @@
 /**
- * PM2 ecosystem for the Dima Hasao platform.
+ * PM2 ecosystem for the Appzeto platform.
  *
  * One API process serves every module — they are mounted on the same Express
  * app, not deployed separately:

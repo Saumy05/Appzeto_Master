@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const businessSettingsSchema = new mongoose.Schema(
     {
-        companyName: { type: String, required: true, default: 'Dima Hasao' },
+        companyName: { type: String, required: true, default: 'Appzeto' },
         /*
          * Blank by default. This used to default to an address at the product
          * this was built on top of, which then showed up as the district's own

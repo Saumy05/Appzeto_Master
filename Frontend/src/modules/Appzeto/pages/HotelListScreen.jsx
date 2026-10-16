@@ -61,7 +61,7 @@ export const HotelListScreen = () => {
       {/* Page Header */}
       <Header
         title="HOTELS & HOMESTAYS"
-        subtitle="Experience scenic stays across Dima Hasao"
+        subtitle="Experience scenic stays across Appzeto"
         showBack={true}
         rightAction="none"
       />

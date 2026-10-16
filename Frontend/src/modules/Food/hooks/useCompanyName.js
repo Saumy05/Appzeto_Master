@@ -48,5 +48,5 @@ export const useCompanyName = () => {
     };
   }, []);
 
-  return platform?.brandName || moduleName || 'Dima Hasao';
+  return platform?.brandName || moduleName || 'Appzeto';
 };

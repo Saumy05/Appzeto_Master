@@ -33,7 +33,7 @@ const ZONE_NAME = /^indore$/i;
 const CITY = "Indore";
 const STATE = "Madhya Pradesh";
 const COUNTRY_CODE = "+91";
-const USER_AGENT = "dima-hasao-seed/1.0 (+https://tourismdimahasao.in)";
+const USER_AGENT = "appzeto-seed/1.0 (+https://appzeto.com)";
 
 /** Wikimedia Commons file → bytes. All CC-licensed, all verified to resolve. */
 const commonsUrl = (file) =>

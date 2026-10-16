@@ -253,7 +253,7 @@ const defaultSettings = {
     { id: '4', title: 'Outstation', image: '', route: '/taxi/user/intercity', order: 4, status: 'active' }
   ],
   promos: [
-    { id: '1', title: 'Rides across Dima Hasao', subtitle: 'Haflong, Maibang, Umrangso and everywhere between.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
+    { id: '1', title: 'Rides across Appzeto', subtitle: 'Haflong, Maibang, Umrangso and everywhere between.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
     { id: '2', title: 'Heading out of the district?', subtitle: 'Book an outstation cab to Silchar, Guwahati or Lumding.', image: '', route: '/taxi/user/intercity', order: 2, status: 'active' }
   ],
   goPlaces: [
@@ -262,7 +262,7 @@ const defaultSettings = {
     { id: '3', title: 'Outstation trips', image: '', route: '/taxi/user/intercity', order: 3, status: 'active' }
   ],
   footer: {
-    hashtag: '#DimaHasao',
+    hashtag: '#Appzeto',
     line1: 'Made for the district',
     line2: 'Crafted for riders'
   }
@@ -623,9 +623,9 @@ const Home = () => {
   const [pickupAddress, setPickupAddress] = useState(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
-      return String(saved?.address || '').trim() || 'Dima Hasao, Assam';
+      return String(saved?.address || '').trim() || 'Appzeto, Assam';
     } catch (e) {
-      return 'Dima Hasao, Assam';
+      return 'Appzeto, Assam';
     }
   });
   const [isLocationLoading, setIsLocationLoading] = useState(() => {
@@ -641,7 +641,7 @@ const Home = () => {
     const handleLocationUpdate = () => {
       try {
         const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
-        setPickupAddress(String(saved?.address || '').trim() || 'Dima Hasao, Assam');
+        setPickupAddress(String(saved?.address || '').trim() || 'Appzeto, Assam');
       } catch (e) { }
     };
     const handleLocationStatus = (e) => {
@@ -1406,7 +1406,7 @@ const Home = () => {
       <div className="pt-1">
         <div className="mb-2.5 ml-1">
           <h2 className={`text-[19px] font-[900] tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            Go Places with Dima Hasao
+            Go Places with Appzeto
           </h2>
           <p className={`text-[11px] font-[900] tracking-[0.14em] mt-1.5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
             Fast bookings to key transit hubs
@@ -1908,7 +1908,7 @@ const Home = () => {
           <div className="hidden lg:block pt-6">
             <div className="flex flex-col items-start px-2 py-2">
               <div className="text-[48px] font-[900] tracking-[-0.03em] text-[#FFC400] drop-shadow-[0_10px_30px_rgba(255,196,0,0.4)] leading-none uppercase">
-                Dima Hasao
+                Appzeto
               </div>
               <div className="mt-2 text-[14px] font-sans italic font-bold tracking-[0.04em] text-slate-800 dark:text-slate-200">
                 {uiSettings?.footer?.hashtag || defaultSettings.footer.hashtag}

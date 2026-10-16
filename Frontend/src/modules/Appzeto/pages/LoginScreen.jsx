@@ -108,13 +108,6 @@ export const LoginScreen = () => {
       // Backend tells us up front whether this number already has an account,
       // so the OTP step can present itself as sign-in vs. registration.
       setNeedsName(data.nextStepIfVerified === 'collect_name');
-      /*
-       * Dev and staging backends return the code in the response. It is
-       * deliberately not used: filling the field, printing it under the input
-       * or putting it in the toast all mean nobody ever types an OTP, so the
-       * one step this screen exists to test is never exercised. The code still
-       * arrives by SMS, and in dev it is the fixed one.
-       */
       setOtp(['', '', '', '']);
       setStep('otp');
       showToast('OTP sent to your phone 📱');
@@ -174,7 +167,7 @@ export const LoginScreen = () => {
 
       // The account exists now, so this is the first real session.
       setUnifiedAuthData(data);
-      finishLogin(digits, data.user, '✨ Account created! Welcome to Dima Hasao!');
+      finishLogin(digits, data.user, '✨ Account created! Welcome to Appzeto!');
     } catch (err) {
       showToast(readApiError(err, 'Could not save your name. Please try again.'));
     } finally {
@@ -194,102 +187,78 @@ export const LoginScreen = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="relative w-full h-dvh min-h-dvh max-h-dvh mx-auto overflow-hidden shadow-2xl flex flex-col justify-between select-none p-2.5 sm:p-3 bg-[#04190c]"
+      className="relative w-full h-dvh min-h-dvh max-h-dvh mx-auto overflow-y-auto hide-scrollbar flex flex-col justify-between select-none p-4 sm:p-6 bg-white"
     >
-      {/* 100% Full-bleed Continuous Background with /updated.png */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <img
-          src="/updated.png"
-          alt="Dima Hasao Heritage Gate"
-          className="w-full h-full object-cover object-top"
-        />
-
-        {/* Top Sky Overlay for Typography Crispness */}
-        <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-white/20 via-white/5 to-transparent z-10" />
-
-        {/* Soft Ambient Vignette behind bottom login card */}
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/50 via-black/15 to-transparent z-10" />
+      {/* Subtle modern ambient background glow on white */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-teal-500/5 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 w-80 h-80 rounded-full bg-emerald-500/5 blur-3xl" />
+        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-slate-100/60 blur-2xl" />
       </div>
 
-      {/* Top Header: Official Seal & Typography (Matching Reference) */}
+      {/* Top Header: Appzeto Brand Logo & Tagline */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="pt-1 text-center relative z-20 flex flex-col items-center px-2"
+        className="pt-4 sm:pt-6 pb-2 text-center relative z-10 flex flex-col items-center px-4"
       >
-        {/* Official Tourism Seal with Falcon */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)] mb-1"
-        >
+        <div className="relative mb-2">
           <img
-            alt="Dima Hasao Tourism Logo"
-            className="w-full h-full object-contain"
+            alt="Appzeto"
+            className="h-16 sm:h-20 w-auto max-w-[240px] sm:max-w-[280px] object-contain drop-shadow-xs"
             src={CONSUMER_BRAND_LOGO}
             onError={logoFallback}
           />
-        </motion.div>
-
-        {/* JUTHAI Header */}
-        <h1 className="font-playfair font-black text-2xl sm:text-[28px] tracking-wider text-[#062c14] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)] leading-none mt-0.5">
-          JUTHAI
-        </h1>
-
-        {/* —• WELCOME TO •— */}
-        <div className="flex items-center justify-center gap-1.5 my-0.5">
-          <div className="h-[1.5px] bg-[#062c14] w-6"></div>
-          <span className="text-[8.5px] sm:text-[9px] font-black tracking-[0.25em] text-[#062c14] uppercase">
-            • WELCOME TO •
-          </span>
-          <div className="h-[1.5px] bg-[#062c14] w-6"></div>
         </div>
 
-        {/* DIMA HASAO */}
-        <h2 className="font-montserrat font-black text-lg sm:text-xl text-[#062c14] tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
-          DIMA HASAO
-        </h2>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <span className="h-0.5 w-6 rounded-full bg-teal-500" />
+          <span className="text-[11px] font-bold tracking-[0.22em] text-teal-700 uppercase font-montserrat">
+            Reflect / Technology
+          </span>
+          <span className="h-0.5 w-6 rounded-full bg-teal-500" />
+        </div>
+
+        <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-[320px] font-medium leading-relaxed">
+          The unified ecosystem for Food, Rides, Stays & Tours
+        </p>
       </motion.div>
 
-      {/* Heritage Gate Viewing Space */}
-      <div className="flex-1 min-h-[40px] pointer-events-none" />
-
-      {/* Bottom Login / Sign Up Card (Matching Reference Image) */}
-      <div className="relative z-20 w-full max-w-[390px] mx-auto pb-1">
+      {/* Center Login / Sign Up Card */}
+      <div className="relative z-10 w-full max-w-[400px] mx-auto pb-4 my-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="dh-login-card bg-[#051f11]/96 backdrop-blur-md border-2 border-[#caa83e] rounded-[22px] p-4 sm:p-5 shadow-[0_15px_40px_rgba(0,0,0,0.85)] relative overflow-hidden"
+          className="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-slate-200/90 relative overflow-hidden"
         >
-          {/* Leaf flourishes & Card Title */}
-          {/* The weave that edges every other Dima Hasao surface, so the card
-              belongs to the same platform as the panels behind it. */}
-          <div
-            aria-hidden
-            className="absolute inset-x-0 top-0 h-1.5"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(45deg,#04190c 0,#04190c 7px,#caa83e 7px,#caa83e 14px,#0d3d20 14px,#0d3d20 21px,#8c1c13 21px,#8c1c13 28px)',
-            }}
-          />
+          {/* Top decorative gradient ribbon */}
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-400" />
 
-          <div className="flex items-center justify-center space-x-2 mb-3 mt-1 relative z-10">
-            <i className="fa-solid fa-leaf text-[#caa83e] text-[11px] transform -scale-x-100"></i>
-            <h3 className="text-[#caa83e] font-extrabold tracking-wider text-[11px] uppercase font-cinzel">
+          {/* Card Title & Subtitle */}
+          <div className="text-center mb-5 mt-1">
+            <h3 className="text-slate-900 font-extrabold tracking-tight text-lg sm:text-xl font-montserrat">
               {step === 'name'
-                ? 'CREATE YOUR ACCOUNT'
+                ? 'Create Your Account'
                 : step === 'otp' && needsName
-                ? 'VERIFY YOUR NUMBER'
-                : 'LOGIN TO YOUR ACCOUNT'}
+                ? 'Verify Your Number'
+                : step === 'otp'
+                ? 'Enter Verification Code'
+                : 'Sign In to Appzeto'}
             </h3>
-            <i className="fa-solid fa-leaf text-[#caa83e] text-[13px]"></i>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              {step === 'name'
+                ? 'Tell us your name to finish setting up your account'
+                : step === 'otp'
+                ? `Enter the 4-digit code sent to +91 ${phone}`
+                : 'Enter your 10-digit mobile number to get started'}
+            </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3 relative z-10">
-            {/* Full Name — only for a number with no account yet, asked after
-                the OTP has already been verified. */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name Step (for new registrations) */}
             <AnimatePresence mode="wait">
               {step === 'name' && (
                 <motion.div
@@ -298,15 +267,13 @@ export const LoginScreen = () => {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="relative overflow-hidden"
+                  className="space-y-1.5"
                 >
-                  <p className="text-[10px] text-emerald-200/90 mb-1.5 text-center">
-                    Number verified — tell us your name to finish signing up.
-                  </p>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <i className="fa-solid fa-user text-[#caa83e] text-[13px]"></i>
-                    </div>
+                  <label htmlFor="name" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-montserrat">
+                    Full Name
+                  </label>
+                  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 h-12 transition-all focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/10">
+                    <i className="fa-solid fa-user text-teal-600 text-xs mr-3"></i>
                     <input
                       id="name"
                       name="name"
@@ -314,8 +281,8 @@ export const LoginScreen = () => {
                       autoFocus
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Full Name"
-                      className="block w-full pl-10 pr-3 h-11 border border-[#caa83e]/50 rounded-xl bg-[#02130a] text-gray-100 placeholder-[#5d7264] focus:outline-none focus:border-[#caa83e] focus:ring-1 focus:ring-[#caa83e] text-sm transition-all"
+                      placeholder="Enter your full name"
+                      className="w-full bg-transparent text-sm font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:outline-none"
                     />
                   </div>
                 </motion.div>
@@ -324,50 +291,54 @@ export const LoginScreen = () => {
 
             {/* Phone Number Input */}
             {step !== 'name' && (
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <i className="fa-solid fa-phone text-[#caa83e] text-[13px]"></i>
+              <div className="space-y-1.5">
+                <label htmlFor="phone" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-montserrat">
+                  Mobile Number
+                </label>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 h-12 transition-all focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/10">
+                  <span className="text-sm font-bold text-slate-700 mr-2 shrink-0 flex items-center gap-1.5">
+                    <i className="fa-solid fa-phone text-teal-600 text-xs"></i>
+                    +91
+                  </span>
+                  <div className="w-px h-5 bg-slate-200 mr-3 shrink-0" />
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    disabled={step === 'otp'}
+                    value={phone}
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="Enter 10-digit number"
+                    className="w-full bg-transparent text-sm font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:outline-none disabled:text-slate-500"
+                  />
+                  {step === 'otp' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep('phone');
+                        setOtp(['', '', '', '']);
+                      }}
+                      aria-label="Edit phone number"
+                      className="ml-2 text-xs font-bold text-teal-600 hover:text-teal-700 transition-colors cursor-pointer shrink-0"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  disabled={step === 'otp'}
-                  value={phone}
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  maxLength={10}
-                  // The field took anything: letters, and as many digits as you
-                  // cared to type. An Indian mobile number is exactly ten.
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="Phone Number"
-                  className="block w-full pl-10 pr-3 h-11 border border-[#caa83e]/50 rounded-xl bg-[#02130a] text-gray-100 placeholder-[#5d7264] focus:outline-none focus:border-[#caa83e] focus:ring-1 focus:ring-[#caa83e] text-sm transition-all disabled:opacity-75"
-                />
-                {step === 'otp' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep('phone');
-                      setOtp(['', '', '', '']);
-                    }}
-                    aria-label="Edit phone number"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#caa83e] hover:text-[#efc04c] transition-colors cursor-pointer"
-                  >
-                    <i className="fa-solid fa-pen text-[11px]"></i>
-                  </button>
-                )}
               </div>
             )}
 
-            {/* OTP Input — four boxes, first one auto-focused as soon as this
-                step mounts so the digits can be typed straight away. */}
+            {/* OTP Input — four boxes */}
             {step === 'otp' && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
+                className="space-y-3 pt-1"
               >
-                <div className="flex items-center justify-center gap-2.5">
+                <div className="flex items-center justify-center gap-3">
                   {[0, 1, 2, 3].map((index) => (
                     <input
                       key={index}
@@ -380,16 +351,16 @@ export const LoginScreen = () => {
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       onPaste={index === 0 ? handleOtpPaste : undefined}
-                      className="h-12 w-12 rounded-xl border border-[#caa83e] bg-[#02130a] text-center text-lg font-mono font-black text-amber-300 outline-none transition-all focus:ring-1 focus:ring-[#caa83e]"
+                      className="h-13 w-13 sm:h-14 sm:w-14 rounded-2xl border-2 border-slate-200 bg-slate-50/80 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/15"
                     />
                   ))}
                 </div>
-                <div className="flex justify-between items-center text-[11px] px-1 pt-0.5">
-                  <span className="text-amber-200/80">Sent to your phone</span>
+                <div className="flex justify-between items-center text-xs px-1 pt-1">
+                  <span className="text-slate-500">Didn't receive code?</span>
                   <button
                     type="button"
                     onClick={handleSendOtp}
-                    className="text-[#caa83e] hover:underline cursor-pointer font-semibold"
+                    className="text-teal-600 hover:text-teal-700 font-bold hover:underline cursor-pointer transition-colors"
                   >
                     Resend OTP
                   </button>
@@ -399,42 +370,36 @@ export const LoginScreen = () => {
 
             {/* GET OTP / VERIFY / REGISTER Button */}
             <motion.button
-              whileHover={{ scale: 1.02, filter: 'brightness(1.06)' }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center h-12 px-4 rounded-xl text-sm font-black text-[#04190c] bg-[#e5b33b] hover:bg-[#efc04c] shadow-[0_10px_24px_rgba(229,179,59,0.28)] transition-all cursor-pointer uppercase tracking-[0.16em]"
+              className="w-full flex items-center justify-center h-12 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-[0_8px_20px_rgba(13,148,136,0.25)] transition-all cursor-pointer uppercase tracking-wider disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <span>
                   {step === 'phone'
-                    ? 'GET OTP'
+                    ? 'Get OTP'
                     : step === 'otp'
-                    ? 'VERIFY & EXPLORE'
-                    : 'CREATE ACCOUNT & EXPLORE'}
+                    ? 'Verify & Continue'
+                    : 'Complete & Explore'}
                 </span>
               )}
             </motion.button>
           </form>
 
-          <div className="mt-3.5 relative z-10">
-            {/* Leaf-flanked divider, echoing the card's top border, to give
-                the footer its own space now that it's just the three links. */}
-            <div className="flex items-center justify-center gap-2 opacity-60">
-              <div className="h-px flex-1 max-w-[72px] bg-gradient-to-r from-transparent to-[#caa83e]/70"></div>
-              <i className="fa-solid fa-leaf text-[#caa83e] text-[9px] transform -scale-x-100"></i>
-              <div className="h-px flex-1 max-w-[72px] bg-gradient-to-l from-transparent to-[#caa83e]/70"></div>
-            </div>
+          {/* Privacy · Terms · Support Links */}
+          <div className="mt-5 pt-4 border-t border-slate-100">
             <AuthLegalLinks
               module="platform"
               variant="icons"
-              className="mt-2.5 flex items-center justify-center gap-6"
+              className="flex items-center justify-center gap-7"
               linkClassName="group flex flex-col items-center gap-1 cursor-pointer"
-              iconWrapClassName="w-9 h-9 rounded-full border border-[#caa83e]/50 bg-[#02130a] flex items-center justify-center text-[#caa83e] transition-all group-hover:bg-[#caa83e]/15 group-hover:border-[#caa83e]"
-              iconClassName="text-[13px]"
-              labelClassName="text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-200/70 transition-colors group-hover:text-[#caa83e]"
+              iconWrapClassName="w-8 h-8 rounded-full border border-slate-200 bg-slate-50/80 flex items-center justify-center text-slate-500 transition-all group-hover:bg-teal-50 group-hover:border-teal-500 group-hover:text-teal-600"
+              iconClassName="text-xs"
+              labelClassName="text-[9px] font-semibold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-teal-600"
             />
           </div>
         </motion.div>
@@ -442,5 +407,3 @@ export const LoginScreen = () => {
     </motion.main>
   );
 };
-
-

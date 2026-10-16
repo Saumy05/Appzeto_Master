@@ -205,7 +205,7 @@ const Destinations = () => {
               <div><label className={label}>Subtitle</label>
                 <input className={field} value={form.subtitle} onChange={set('subtitle')} placeholder="JATINGA VIEW POINT & SHIVRAI TEMPLE" /></div>
               <div><label className={label}>Short location</label>
-                <input className={field} value={form.location} onChange={set('location')} placeholder="Jatinga, Dima Hasao" /></div>
+                <input className={field} value={form.location} onChange={set('location')} placeholder="Jatinga, Appzeto" /></div>
               <div><label className={label}>Category</label>
                 <div className="grid grid-cols-3 gap-2">
                   {CATEGORIES.map((c) => {

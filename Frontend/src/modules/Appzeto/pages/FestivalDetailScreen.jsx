@@ -101,7 +101,7 @@ export const FestivalDetailScreen = () => {
             amount: order.order.amount,
             currency: order.order.currency || 'INR',
             order_id: order.order.id,
-            name: 'Dima Hasao Festivals',
+            name: 'Appzeto Festivals',
             description: `${festival.name} — ${passCount} ${passCount === 1 ? 'pass' : 'passes'}`,
             themeColor: '#0a4d2b',
             prefill: { name: user?.name || '', contact: user?.phone || '' },

@@ -7,7 +7,7 @@ import outOfZoneBg from '@food/assets/Outofzone_bg.jpg';
 
 const OutOfZoneScreen = ({ location, handleLocationClick }) => {
   const { userProfile } = useProfile();
-  const BRAND_NAME = "Dima Hasao Food";
+  const BRAND_NAME = "Appzeto Food";
 
   const routerLocation = useLocation();
   const initials = React.useMemo(() => {

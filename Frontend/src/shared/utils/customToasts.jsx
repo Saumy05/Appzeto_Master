@@ -14,7 +14,7 @@ export const showNotificationToast = ({ title, message } = {}) => {
           <img
             src={CONSUMER_BRAND_LOGO}
             onError={logoFallback}
-            alt="Dima Hasao Food"
+            alt="Appzeto Food"
             className="w-7 h-7 object-contain brightness-0 invert"
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
           />
@@ -44,7 +44,7 @@ export const showHelloParthBrandedToast = ({ title, message, id = "helloparth-br
             <img
               src={CONSUMER_BRAND_LOGO}
               onError={logoFallback}
-              alt="Dima Hasao Food"
+              alt="Appzeto Food"
               className="w-full h-full object-contain brightness-0 invert"
             />
           </div>

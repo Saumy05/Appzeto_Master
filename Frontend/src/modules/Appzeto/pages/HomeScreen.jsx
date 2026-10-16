@@ -14,13 +14,13 @@ const HERO_SLIDES = [
     id: 1,
     image: '/carousal-2.png',
     position: 'object-[center_35%]',
-    alt: 'Dima Hasao Landmark Gate'
+    alt: 'Appzeto Landmark Gate'
   },
   {
     id: 2,
     image: '/carousal-3.png',
     position: 'object-[center_35%]',
-    alt: 'I Love Dima Hasao Mountain Viewpoint'
+    alt: 'I Love Appzeto Mountain Viewpoint'
   }
 ];
 
@@ -109,17 +109,17 @@ export const HomeScreen = () => {
 
         {/* Main Header Typography & Logo Layout */}
         <div className="absolute top-4 sm:top-5 left-3.5 right-3.5 z-10 flex items-center justify-center gap-3">
-          {/* Transparent Circular Tourism Emblem */}
+          {/* Appzeto Brand Logo in crisp white pill */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-            className="w-[100px] h-[100px] sm:w-[110px] sm:h-[110px] shrink-0 drop-shadow-[0_4px_16px_rgba(0,0,0,0.55)] cursor-pointer"
+            className="h-14 sm:h-16 px-3.5 py-1 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-white/60 flex items-center justify-center shrink-0 cursor-pointer"
             onClick={() => navigate('/places')}
           >
             <img
-              alt="Dima Hasao Tourism Logo"
-              className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
+              alt="Appzeto Logo"
+              className="h-full w-auto max-w-[130px] object-contain hover:scale-105 transition-transform duration-300"
               src={CONSUMER_BRAND_LOGO}
               onError={logoFallback}
             />
@@ -152,9 +152,9 @@ export const HomeScreen = () => {
               <div className="h-[1.5px] bg-amber-400 w-5"></div>
             </div>
 
-            {/* DIMA HASAO */}
+            {/* APPZETO */}
             <h1 className="font-montserrat text-2xl sm:text-[25px] font-black text-white leading-none tracking-tight">
-              DIMA HASAO
+              APPZETO
             </h1>
 
             {/* Subtitle */}

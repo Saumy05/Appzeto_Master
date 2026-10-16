@@ -25,12 +25,12 @@ const STATE = 'Assam';
 const ADMINS = [
   {
     email: 'admin@gmail.com',
-    name: 'Dima Hasao Super Admin',
+    name: 'Appzeto Super Admin',
     password: DEFAULT_PASSWORD,
   },
   {
-    email: 'admin@dimahasao.com',
-    name: 'Dima Hasao Platform Admin',
+    email: 'admin@appzeto.com',
+    name: 'Appzeto Platform Admin',
     password: DEFAULT_PASSWORD,
   },
 ];
@@ -61,7 +61,7 @@ const seedUsers = async () => {
     if (!user) user = new FoodUser({ phone });
     user.phone = phone;
     user.countryCode = COUNTRY_CODE;
-    user.name = `Dima Hasao User ${index}`;
+    user.name = `Appzeto User ${index}`;
     user.password = hashedPassword;
     user.isVerified = true;
     user.isActive = true;
@@ -77,9 +77,9 @@ const seedUsers = async () => {
       { $or: [{ ownerPhone: phone }, { primaryContactNumber: phone }] },
       {
         $set: {
-          restaurantName: `Dima Hasao Restaurant ${index}`,
+          restaurantName: `Appzeto Restaurant ${index}`,
           ownerName: `Restaurant Owner ${index}`,
-          ownerEmail: `restaurant${index}@dimahasao.com`,
+          ownerEmail: `restaurant${index}@appzeto.com`,
           ownerPhone: phone,
           primaryContactNumber: phone,
           countryCode: COUNTRY_CODE,
@@ -94,7 +94,7 @@ const seedUsers = async () => {
       },
       { upsert: true }
     );
-    console.log(`  ✓ Restaurant: Dima Hasao Restaurant ${index}`);
+    console.log(`  ✓ Restaurant: Appzeto Restaurant ${index}`);
 
     // 3. Delivery Partner (food_delivery_partners collection)
     const deliveryCol = mongoose.connection.collection('food_delivery_partners');
@@ -192,7 +192,7 @@ const run = async () => {
     console.log('\nCredentials Summary:');
     console.log('----------------------------------------');
     console.log('Super Admin Login (/admin/login):');
-    console.log('  Email:    admin@gmail.com (or admin@dimahasao.com)');
+    console.log('  Email:    admin@gmail.com (or admin@appzeto.com)');
     console.log('  Password: 123456');
     console.log('----------------------------------------');
     console.log('Test User Phones (Consumer, Restaurant, Delivery, Taxi, Hotel):');

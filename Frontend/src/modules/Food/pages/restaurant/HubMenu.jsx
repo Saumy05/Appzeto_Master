@@ -546,7 +546,7 @@ export default function HubMenu() {
             let uploadResponse
             try {
               uploadResponse = await uploadAPI.uploadMedia(file, {
-                folder: 'Dima Hasao/restaurant/addons'
+                folder: 'Appzeto/restaurant/addons'
               })
             } catch (folderUploadError) {
               // Fallback: retry without folder in case provider/account rejects custom folder.

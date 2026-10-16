@@ -86,7 +86,7 @@ test('deploy hook is disabled without DEPLOY_WEBHOOK_SECRET', opts, async () => 
 
 test('admin login no longer auto-creates the hardcoded default superadmin', opts, async () => {
   const r = await call('POST', '/auth/admin/login', {
-    body: { email: 'admin@tourismdimahasao.in', password: 'Dima Hasao@2026' },
+    body: { email: 'admin@appzeto.com', password: 'Appzeto@2026' },
   });
   assert.equal(r.status, 401);
 });

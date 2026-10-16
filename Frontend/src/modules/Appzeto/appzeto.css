@@ -1,4 +1,4 @@
-/* Dima Hasao design system (ported from the client-approved v1 build).
+/* Appzeto design system (ported from the client-approved v1 build).
    Tailwind is already imported by the host's global.css — do not re-import it.
    Base resets are scoped to .dh-app so the driver/restaurant/admin panels that
    share this bundle keep their own scrolling and text-selection behaviour. */

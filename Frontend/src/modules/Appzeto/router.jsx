@@ -5,7 +5,7 @@ import {
   Navigate as RouterNavigate,
 } from 'react-router-dom';
 
-// The Dima Hasao customer app is mounted under this prefix inside the host app.
+// The Appzeto customer app is mounted under this prefix inside the host app.
 // Screens keep using their original absolute paths ('/hotels', '/food/cart', ...)
 // and this shim maps them onto the mount point, so the client-approved code is
 // never rewritten. Set to '' to serve the app from the domain root.

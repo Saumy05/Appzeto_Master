@@ -267,7 +267,7 @@ export default function HomeHeader({
           </div>
         </div>
 
-        {/* Row 2: Dima Hasao Food / Taxi tabs */}
+        {/* Row 2: Appzeto Food / Taxi tabs */}
         <SuperAppHomeHeader activeVertical="food" tabsOnly embedded location={location} />
 
         {/* Below tabs: fixed 255px — same as Taxi SuperAppHero */}

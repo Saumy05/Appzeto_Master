@@ -98,7 +98,7 @@ export const RESTAURANTS_DATA = [
         isVeg: true,
         isSpicy: false,
         isBestseller: true,
-        description: 'Single-origin Arabica coffee beans harvested from the southern hills of Dima Hasao, freshly ground and brewed.',
+        description: 'Single-origin Arabica coffee beans harvested from the southern hills of Appzeto, freshly ground and brewed.',
         image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80'
       },
       {

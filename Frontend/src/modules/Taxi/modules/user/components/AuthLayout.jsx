@@ -8,7 +8,7 @@ import { DRIVER_BRAND_LOGO, logoFallback } from '@/shared/constants/brandLogo';
 
 const AuthLayout = ({ children, title, subtitle }) => {
   const { settings } = useSettings();
-  const appName = settings.general?.app_name || 'Dima Hasao';
+  const appName = settings.general?.app_name || 'Appzeto';
   // One mark for the rider and delivery apps. Deliberately not the CMS
   // logo setting: that still holds the old vendor artwork, and these two
   // apps are meant to look like the district's, not like whatever is left

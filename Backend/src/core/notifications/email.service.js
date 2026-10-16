@@ -97,7 +97,7 @@ export const sendEmail = async ({ to, subject, html, text, from } = {}) => {
     }
 };
 
-const BRAND = () => String(process.env.EMAIL_FROM_NAME || process.env.APP_NAME || 'Dima Hasao').trim();
+const BRAND = () => String(process.env.EMAIL_FROM_NAME || process.env.APP_NAME || 'Appzeto').trim();
 
 /**
  * Shared branded HTML shell, so every module's mail looks like one product.

@@ -146,7 +146,7 @@ const PartnerWallet = () => {
                     key: order.key,
                     amount: order.amount,
                     currency: order.currency,
-                    name: "Dima Hasao Partner",
+                    name: "Appzeto Partner",
                     description: "Wallet Top-up",
                     order_id: order.id,
                     handler: async (response) => {

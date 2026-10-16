@@ -73,8 +73,8 @@ export const config = {
     smsDltTemplateId: (process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID || '1007282516644508833').trim(),
     // The two ##var## slots in the approved DLT OTP template. They are part of
     // the registered text, so they are configuration, not copy.
-    smsDltAppName: (process.env.SMS_INDIA_HUB_APP_NAME || 'Dima Hasao').trim(),
-    smsDltBrandName: (process.env.SMS_INDIA_HUB_BRAND_NAME || 'Dima Hasao').trim(),
+    smsDltAppName: (process.env.SMS_INDIA_HUB_APP_NAME || 'Appzeto').trim(),
+    smsDltBrandName: (process.env.SMS_INDIA_HUB_BRAND_NAME || 'Appzeto').trim(),
     // The approved DLT template text, ##var## slots filled in order:
     // app name, brand, OTP. Must match the registered template exactly.
     smsDltOtpTemplate: (
@@ -161,7 +161,7 @@ export const env = {
     // Top-level folder every module's uploads are namespaced under. Replaces
     // the old `cloudinary` block — there is no Cloudinary in this project any
     // more, only services/storage.service.js.
-    uploadFolder: (process.env.UPLOAD_FOLDER || 'dima-hasao').trim(),
+    uploadFolder: (process.env.UPLOAD_FOLDER || 'appzeto').trim(),
     redis: {
         enabled: config.redisEnabled,
         url: config.redisUrl,

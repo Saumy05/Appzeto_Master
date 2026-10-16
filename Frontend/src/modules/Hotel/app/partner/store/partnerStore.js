@@ -25,7 +25,7 @@ const INITIAL_DATA = {
         country: 'India'
     },
 
-    // --- Property Onboarding (JoinDima Hasao) ---
+    // --- Property Onboarding (Join Appzeto) ---
     hotelDraftId: null,
 
     // Step 1

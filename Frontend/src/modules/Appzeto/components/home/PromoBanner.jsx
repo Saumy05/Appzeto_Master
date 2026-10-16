@@ -8,7 +8,7 @@ export const PromoBanner = () => {
     <div className="relative w-auto mx-3 h-[120px] rounded-2xl overflow-hidden shadow-sm border border-orange-200/40" data-purpose="promo-banner">
       {/* Background Mountain Photo */}
       <img
-        alt="Discover Dima Hasao"
+        alt="Discover Appzeto"
         className="w-full h-full object-cover"
         src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu4pmPYVoooGutS4BGHL_h3AM91HWpb0p3I7_YN0nNkKK4xpIAkqN1ItQCz_Nsd7DbcowZqup9rTFIBowf5I0Jrs-It5TrdAccxzvRgaSof8HlnftQt9lj9LGKzYmk8zjtnKHKT-LCqDhuT2NBwxGfEZNfaUZp_KgB0pmGPOfzFx8k8fbx2PpkAiM0dtzfVKXnMWQIZep3NYZwMvUPV44vu4xjr9xNtuKhBw0r9VIi49A_dvZwhxmZ"
       />
@@ -19,7 +19,7 @@ export const PromoBanner = () => {
         <h3 className="text-white font-extrabold text-xs sm:text-sm leading-tight mb-2 drop-shadow-sm tracking-tight">
           DISCOVER THE<br />
           UNTOLD BEAUTY OF<br />
-          <span className="text-amber-300">DIMA HASAO</span>
+          <span className="text-amber-300">APPZETO</span>
         </h3>
         <motion.button
           whileHover={{ scale: 1.03 }}

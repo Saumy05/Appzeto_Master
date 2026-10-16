@@ -478,10 +478,10 @@ export default function UnifiedOTPFastLogin() {
             transition={{ delay: 0.1 }}
             className="flex items-center gap-4 mb-16"
           >
-            <div className="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-lg">
-              <img src={DEFAULT_BRAND_LOGO} alt="Dima Hasao" className="w-8 h-8 object-contain" />
+            <div className="h-12 px-3 flex items-center justify-center bg-white rounded-xl shadow-lg border border-slate-100">
+              <img src={DEFAULT_BRAND_LOGO} alt="Appzeto" className="h-8 w-auto object-contain" />
             </div>
-            <h1 className="text-3xl font-black tracking-tight">Dima Hasao</h1>
+            <h1 className="text-3xl font-black tracking-tight">Appzeto</h1>
           </motion.div>
 
           <motion.div
@@ -552,12 +552,14 @@ export default function UnifiedOTPFastLogin() {
               animate={{ opacity: 1, y: 0 }}
               className="w-full flex flex-col items-center"
             >
-              {/* Circular Logo */}
-              <img
-                src={DEFAULT_BRAND_LOGO}
-                alt="Dima Hasao"
-                className="w-[84px] h-[84px] rounded-full object-cover shadow-lg mb-6"
-              />
+              {/* Appzeto Brand Logo */}
+              <div className="mb-6 flex items-center justify-center">
+                <img
+                  src={DEFAULT_BRAND_LOGO}
+                  alt="Appzeto"
+                  className="h-14 sm:h-16 w-auto max-w-[240px] object-contain drop-shadow-sm"
+                />
+              </div>
 
               <div className="text-center mb-8">
                 <h2 className="text-[32px] leading-tight font-black text-[#1A1A1A] tracking-tight mb-2">
@@ -565,7 +567,7 @@ export default function UnifiedOTPFastLogin() {
                     ? "Complete your profile"
                     : step === 2
                       ? "Verify OTP"
-                      : "Welcome to Dima Hasao"}
+                      : "Welcome to Appzeto"}
                 </h2>
                 <p className="text-[#1A1A1A] text-[15px] font-medium max-w-[28ch] mx-auto">
                   {step === 3 ? (

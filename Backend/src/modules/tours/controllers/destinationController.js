@@ -85,7 +85,7 @@ const imagesOf = (doc = {}) => [
  * mentions them, so matching on one would surface the entire catalogue.
  */
 const PLACE_STOPWORDS = new Set([
-  'dima', 'hasao', 'assam', 'india', 'love', 'the', 'and', 'point', 'view',
+  'appzeto', 'dima', 'hasao', 'assam', 'india', 'love', 'the', 'and', 'point', 'view',
   'town', 'peak', 'hill', 'hills', 'road', 'tour', 'trip', 'near', 'valley',
 ]);
 

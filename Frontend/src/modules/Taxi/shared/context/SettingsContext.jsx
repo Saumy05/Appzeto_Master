@@ -23,7 +23,7 @@ export const normalizeAssetUrl = (url = '') => {
 const DEFAULT_SETTINGS_CONTEXT = {
   settings: {
     general: {
-      app_name: 'Dima Hasao Taxi',
+      app_name: 'Appzeto Taxi',
       logo: '',
       favicon: '',
     },
@@ -288,7 +288,7 @@ export const SettingsProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const appName = settings.general?.app_name || 'Dima Hasao Taxi';
+    const appName = settings.general?.app_name || 'Appzeto Taxi';
     document.title = appName;
 
     const favicon = settings.general?.favicon || settings.customization?.favicon;

@@ -6,14 +6,14 @@ export const FESTIVALS_DATA = [
     tagline: 'Celebrating the Amur Falcon & Hills Tourism',
     dates: 'Nov 14 - Nov 17, 2026',
     venue: 'Golf Field Grounds & Kopili Lakefront, Umrangso',
-    location: 'Umrangso, Dima Hasao, Assam',
+    location: 'Umrangso, Appzeto, Assam',
     heroImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1200&q=80'
     ],
-    organizer: 'Dima Hasao Autonomous Council (DHAC) & Tourism Department',
+    organizer: 'Appzeto Autonomous Council (DHAC) & Tourism Department',
     description: 'The mega annual tourism and bird conservation festival of Assam. Featuring top international rock & indie headliners, traditional Dimasa ethnic fashion, lakeside kayaking, dirt bike racing, and bird observation trails for the migratory Amur Falcon.',
     highlights: [
       '3 Nights of live concerts featuring renowned Northeast and international music bands',
@@ -64,7 +64,7 @@ export const FESTIVALS_DATA = [
     tagline: 'The Grand Cultural & Folk Carnival of the Dimasa Tribe',
     dates: 'Jan 26 - Jan 29, 2027',
     venue: 'Haflong Central Cultural Complex & Maibang Heritage Grounds',
-    location: 'Haflong & Maibang, Dima Hasao',
+    location: 'Haflong & Maibang, Appzeto',
     heroImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80',
@@ -110,12 +110,12 @@ export const FESTIVALS_DATA = [
     tagline: 'A Celebration of Northeast Heritage Gastronomy',
     dates: 'Dec 18 - Dec 20, 2026',
     venue: 'Haflong Lake Amphitheatre, Haflong',
-    location: 'Haflong, Dima Hasao',
+    location: 'Haflong, Appzeto',
     heroImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80'
     ],
-    organizer: 'Youth Association of Dima Hasao',
+    organizer: 'Youth Association of Appzeto',
     description: 'Dedicated to the world-renowned GI-tagged Judima traditional rice wine and organic hill foods. Features cooking masterclasses by tribal elders, live folk fusion bands, and handloom exhibitions.',
     highlights: [
       'Judima Sommelier Tasting Bar with over 20 artisanal brewing variants',

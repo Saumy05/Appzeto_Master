@@ -210,7 +210,7 @@ export const HotelBookingScreen = () => {
         amount: created.order.amount,
         currency: created.order.currency || 'INR',
         order_id: created.order.id,
-        name: 'Dima Hasao Stays',
+        name: 'Appzeto Stays',
         description: `${hotel.name} — ${selectedRoom.name}`,
         themeColor: '#0a4d2b',
         prefill: { name: guestName, email: guestEmail, contact: guestPhone },

@@ -92,7 +92,7 @@ export const TouristPlaceDetail = () => {
       {/* Header */}
       <Header
         title="TOURIST PLACES"
-        subtitle="Explore the Beauty of Dima Hasao"
+        subtitle="Explore the Beauty of Appzeto"
         showBack={true}
         rightAction="favorite"
         placeId={place.id}
@@ -220,7 +220,7 @@ export const TouristPlaceDetail = () => {
               </div>
               <p className="text-center text-xs text-gray-600 font-medium">
                 Enjoy the view, Respect the nature<br />
-                <span className="font-bold text-sm text-gray-900">Love Dima Hasao!</span>
+                <span className="font-bold text-sm text-gray-900">Love Appzeto!</span>
               </p>
             </div>
           </section>
@@ -251,7 +251,7 @@ export const TouristPlaceDetail = () => {
       {/* Footer message */}
       <footer className="bg-[#0b2e13] text-white py-4 text-center border-t border-emerald-900">
         <p className="text-xs font-serif italic text-amber-300">
-          Plan your trip, stay safe and<br />enjoy the beauty of Dima Hasao!
+          Plan your trip, stay safe and<br />enjoy the beauty of Appzeto!
         </p>
       </footer>
     </div>

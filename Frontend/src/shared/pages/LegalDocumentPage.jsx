@@ -66,7 +66,7 @@ export default function LegalDocumentPage() {
       <div className="mx-auto w-full max-w-3xl rounded-2xl border border-[#e5ddc3] bg-white p-6 shadow-sm sm:p-10">
         <header className="mb-6 border-b border-[#e5ddc3] pb-5">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0a4d2b]">
-            Dima Hasao Tourism
+            Appzeto Tourism
           </p>
           <h1 className="mt-1.5 text-2xl font-black text-gray-900">
             {doc?.title || (status === 'loading' ? 'Loading…' : 'Not available')}

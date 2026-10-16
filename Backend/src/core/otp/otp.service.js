@@ -148,8 +148,8 @@ const resolveActiveProvider = () => {
  */
 const buildIndiaHubOtpMessage = (otp) => {
     const values = [
-        String(config.smsDltAppName || 'Dima Hasao').trim(),
-        String(config.smsDltBrandName || 'Dima Hasao').trim(),
+        String(config.smsDltAppName || 'Appzeto').trim(),
+        String(config.smsDltBrandName || 'Appzeto').trim(),
         String(otp),
     ];
 

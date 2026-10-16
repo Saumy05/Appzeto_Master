@@ -39,7 +39,7 @@ export const RestaurantListScreen = () => {
   return (
     <div className="bg-[#FAF6ED] text-gray-800 antialiased min-h-screen pb-28 relative font-poppins">
       <Header
-        title="DIMA FOOD & DINING"
+        title="APPZETO FOOD & DINING"
         subtitle="Authentic tribal delicacies & local eateries"
         showBack={true}
         rightAction="none"

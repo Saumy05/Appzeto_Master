@@ -8,7 +8,7 @@ dotenv.config();
 
 const EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@gmail.com';
 const PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'admin123';
-const NAME = process.env.SEED_ADMIN_NAME || 'Dima Hasao Super Admin';
+const NAME = process.env.SEED_ADMIN_NAME || 'Appzeto Super Admin';
 
 const run = async () => {
   const uri = process.env.MONGODB_URI;

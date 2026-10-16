@@ -1,5 +1,5 @@
 /**
- * Drop Dima Hasao's old food-only Mongo collections.
+ * Drop Appzeto's old food-only Mongo collections.
  * NEVER drops taxi/identity collections: users, admins, taxidrivers, taxi*.
  *
  * Usage (from Backend folder):

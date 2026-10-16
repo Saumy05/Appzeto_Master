@@ -1,9 +1,9 @@
 import { BookingProvider } from './context/BookingContext';
 import { MobileFrame } from './components/layout/MobileFrame';
 import { UserRoutes } from './routes/userRoutes';
-import './dimahasao.css';
+import './appzeto.css';
 
-// Dima Hasao customer app. The host app owns the Router, so this mounts the
+// Appzeto customer app. The host app owns the Router, so this mounts the
 // approved v1 shell as a descendant route tree.
 //
 // There is no splash screen. In a browser it was a second of branding; inside
@@ -15,7 +15,7 @@ import './dimahasao.css';
 // tell going back (restore where you were) from going somewhere new (start at
 // the top). The old ScrollToTop reset every container on every route change,
 // which would fight that.
-export default function DimaHasaoApp() {
+export default function AppzetoApp() {
   return (
     <div className="dh-app">
       <BookingProvider>

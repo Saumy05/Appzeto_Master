@@ -21,7 +21,7 @@ import { installHistoryStateSanitizer } from './shared/utils/historyState.js'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 import './shared/styles/global.css'
 
-// ─── Dima Hasao Food Module Initialization ───────────────────────────────────
+// ─── Appzeto Food Module Initialization ───────────────────────────────────
 
 // Load food module business settings (favicon, title) — non-critical
 import('./modules/Food/utils/businessSettings.js')

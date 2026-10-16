@@ -20,7 +20,7 @@ export default function LoginRequiredModal({ isOpen, onClose, intent = "general"
 
   const isTaxiIntent = intent === "taxi"
   const caption = isTaxiIntent
-    ? "Please login to book rides, parcels, and more on Dima Hasao Taxi."
+    ? "Please login to book rides, parcels, and more on Appzeto Taxi."
     : "Please login to continue your delicious journey"
 
   const handleLoginClick = () => {

@@ -69,7 +69,7 @@ const Login = () => {
   ));
   const [showInput, setShowInput] = useState(false);
 
-  const appName = settings.general?.app_name || 'Dima Hasao';
+  const appName = settings.general?.app_name || 'Appzeto';
   // One mark for the rider and delivery apps. Deliberately not the CMS
   // logo setting: that still holds the old vendor artwork, and these two
   // apps are meant to look like the district's, not like whatever is left
@@ -163,7 +163,7 @@ const Login = () => {
           </span>
           <h1 className="text-[28px] font-black leading-[1.15] tracking-tight uppercase text-white">
             <span className="login-accent-text">Experience a New</span> <br />
-            Standard with Dima Hasao  <br />
+            Standard with Appzeto  <br />
             <span className="login-accent-text">24</span>
           </h1>
         </div>

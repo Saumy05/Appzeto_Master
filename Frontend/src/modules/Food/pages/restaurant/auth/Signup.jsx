@@ -9,12 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@food/components/ui/select"
-import DimaHasaoAuthShell, {
+import AppzetoAuthShell, {
   authFieldClass,
   authLabelClass,
   authInputClass,
   authButtonClass,
-} from "@/shared/components/auth/DimaHasaoAuthShell"
+} from "@/shared/components/auth/AppzetoAuthShell"
 import { RESTAURANT_BRAND_LOGO } from "@/shared/constants/brandLogo"
 import AuthLegalLinks from "@/shared/components/auth/AuthLegalLinks"
 
@@ -137,7 +137,7 @@ export default function RestaurantSignup() {
   }
 
   return (
-    <DimaHasaoAuthShell
+    <AppzetoAuthShell
       logo={RESTAURANT_BRAND_LOGO}
       width="880px"
       blurb="Register your restaurant and start serving customers across the district."
@@ -291,6 +291,6 @@ export default function RestaurantSignup() {
         className="dh-montserrat mt-6 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5d7264]"
         linkClassName="transition-colors hover:text-[#caa83e]"
       />
-    </DimaHasaoAuthShell>
+    </AppzetoAuthShell>
   )
 }

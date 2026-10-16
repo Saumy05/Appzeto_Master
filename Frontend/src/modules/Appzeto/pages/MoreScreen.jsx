@@ -116,7 +116,7 @@ export const MoreScreen = () => {
     <div className="bg-[#FAF6ED] text-gray-800 antialiased min-h-screen pb-20 relative font-poppins">
       <Header
         title="MORE & SERVICES"
-        subtitle="Explore all Dima Hasao services"
+        subtitle="Explore all Appzeto services"
         showBack={true}
         rightAction="none"
       />
@@ -288,7 +288,7 @@ export const MoreScreen = () => {
           )}
 
           <p className="text-center text-[10px] text-gray-400 font-medium pt-2">
-            Dima Hasao Tourism Official Web App • v2.0
+            Appzeto Tourism Official Web App • v2.0
           </p>
         </div>
       </main>

@@ -2,11 +2,11 @@ export const PLACES_DATA = [
   {
     id: '1',
     number: '1',
-    slug: 'i-love-dima-hasao',
-    name: 'I LOVE DIMA HASAO',
+    slug: 'i-love-appzeto',
+    name: 'I LOVE APPZETO',
     subtitle: 'JATINGA VIEW POINT & SHIVRAI TEMPLE',
-    location: 'Jatinga, Dima Hasao',
-    fullAddress: 'Jatinga Road, Haflong, Dima Hasao, Assam',
+    location: 'Jatinga, Appzeto',
+    fullAddress: 'Jatinga Road, Haflong, Appzeto, Assam',
     distanceFromStation: '2.0 km',
     travelTime: '15 min (Approx.)',
     bestTime: 'October to March (Sunrise & Sunset all year)',
@@ -16,8 +16,8 @@ export const PLACES_DATA = [
     insetImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnndqgysVmvho-y1_bZpIPzl1HctAeUVACCFuIQ4z0APfvtUbML_eCA8vXJoL7f6reH6vBnSQeEk_-VkXgHjXthXbK796zeXJPmTy7iEfPEd6DJdcfrCnOQ-EtHU-7C_xz6JzZHDhRNfh9-3o5n5YxIEsZcddTJ9hvFWxFTQfUgWluETRlx5lfkrahwv7fMJFjXWuOvzPvF4L8hXFzHTOOdIKYYb75jNzggAwCw8KgCEoNGc1YMGlc',
     description: 'Famous for the mysterious bird phenomenon during monsoon evenings. The viewpoint offers breathtaking sunsets and panoramic views. The nearby Shivrai Temple is a peaceful spiritual place.',
     aboutDetails: [
-      'The "I Love Dima Hasao" viewpoint is one of the most iconic and Instagrammable spots in the district. It offers a breathtaking panoramic view of the surrounding hills, lush valleys and the beautiful town of Haflong.',
-      'It is a symbol of pride and love for the people of Dima Hasao.'
+      'The "I Love Appzeto" viewpoint is one of the most iconic and Instagrammable spots in the district. It offers a breathtaking panoramic view of the surrounding hills, lush valleys and the beautiful town of Haflong.',
+      'It is a symbol of pride and love for the people of Appzeto.'
     ],
     tags: [
       { icon: 'fa-solid fa-camera', text: 'Scenic View', color: 'text-green-600' },
@@ -49,8 +49,8 @@ export const PLACES_DATA = [
     slug: 'haflong-town',
     name: 'HAFLONG TOWN',
     subtitle: 'THE QUEEN OF ASSAM HILLS',
-    location: 'Haflong, Dima Hasao',
-    fullAddress: 'Haflong Town Center, Dima Hasao, Assam',
+    location: 'Haflong, Appzeto',
+    fullAddress: 'Haflong Town Center, Appzeto, Assam',
     distanceFromStation: '3.5 km',
     travelTime: '18 min (Approx.)',
     bestTime: 'October to May',
@@ -58,7 +58,7 @@ export const PLACES_DATA = [
     mainImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBXi2ZL8A9d6xh4eTNmtYQjrrm2eXevSbbq7AM8cec1gAAGRhO5iaDNLcXgpt3Ni3xqaMLiOKVbn5jPfxLgauo6ZSfyyWUCHXQsRiDIJjkX796WSnav0VI6DhcRJreMW6lZKSwYO7klZC8rnjeYjQxepwv_UDdf-IBgeUFipTd-BPADaUSyULhlZOf5e33u4UQeFc0ui3ed4pGxvFaPhi-IL7aPxN6YGlJHbWygfV2Hlgayr2K-jHaQ',
     heroImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBXi2ZL8A9d6xh4eTNmtYQjrrm2eXevSbbq7AM8cec1gAAGRhO5iaDNLcXgpt3Ni3xqaMLiOKVbn5jPfxLgauo6ZSfyyWUCHXQsRiDIJjkX796WSnav0VI6DhcRJreMW6lZKSwYO7klZC8rnjeYjQxepwv_UDdf-IBgeUFipTd-BPADaUSyULhlZOf5e33u4UQeFc0ui3ed4pGxvFaPhi-IL7aPxN6YGlJHbWygfV2Hlgayr2K-jHaQ',
     insetImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC_dxnfgimhr3N-5YkfseQ1lbUHgooA3kXI3T7qR-2rcz2oP_tvCo_S3MzEA-iw0H0s9lMRX8vbvT2Beygb55sWGBEj4mD5yqi1oBOjLMtL5OlRFTbHBdgc3IOLV3NbeuNTiEBjtSwOXLJNcc7zh-ZVYEw_nOqL_Mt4HwdPlCOwczoB2Kac3nJBVVfCtR99vAvYmup3op1bFN-EGnAq_RC1uAVVYds1pjh3XsLCr1AmcP2AmgFOgnDi',
-    description: 'The administrative headquarters of Dima Hasao. A beautiful hill town with pleasant climate, rich culture, local markets, and warm hospitality. Explore the local life, churches, temples and scenic landscapes.',
+    description: 'The administrative headquarters of Appzeto. A beautiful hill town with pleasant climate, rich culture, local markets, and warm hospitality. Explore the local life, churches, temples and scenic landscapes.',
     aboutDetails: [
       'Haflong is known as the Scotland of Assam. Set amidst pine-clad hills, peaceful lakes, and British-era churches.',
       'Visitors love the vibrant Saturday market, authentic ethnic restaurants, and panoramic viewpoints.'
@@ -88,9 +88,9 @@ export const PLACES_DATA = [
     number: '3',
     slug: 'silaikul-peak',
     name: 'SILAIKUL PEAK',
-    subtitle: 'THE HIGHEST SUMMIT IN DIMA HASAO',
-    location: 'Silaikul, Dima Hasao',
-    fullAddress: 'Silaikul Peak Trek Base, Dima Hasao, Assam',
+    subtitle: 'THE HIGHEST SUMMIT IN APPZETO',
+    location: 'Silaikul, Appzeto',
+    fullAddress: 'Silaikul Peak Trek Base, Appzeto, Assam',
     distanceFromStation: '14.0 km',
     travelTime: '35 min (Approx.)',
     bestTime: 'November to March',
@@ -98,7 +98,7 @@ export const PLACES_DATA = [
     mainImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAJOmVn8J7y0XtU_CzS5fuBp9op-62F78mTvCvZlchAdzruqs-vXdByV16hQrL2AFth2YfoMqo5LhbPaclGFfPEwMVCZ_jMOD51w5RHud1v4ay5i2PYZHZa19BVtLiS2Py3n4XBCQjppa9_yjTimzR6bDlc45CEj8yhTtT5y9gJSlHFi3K6GJ5JXv1fUW4f6nWcU0owIga29YigAyfVgR_ryUU7IDxvikwxhJ8ZFgtYd-XTljzZxeRo',
     heroImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAJOmVn8J7y0XtU_CzS5fuBp9op-62F78mTvCvZlchAdzruqs-vXdByV16hQrL2AFth2YfoMqo5LhbPaclGFfPEwMVCZ_jMOD51w5RHud1v4ay5i2PYZHZa19BVtLiS2Py3n4XBCQjppa9_yjTimzR6bDlc45CEj8yhTtT5y9gJSlHFi3K6GJ5JXv1fUW4f6nWcU0owIga29YigAyfVgR_ryUU7IDxvikwxhJ8ZFgtYd-XTljzZxeRo',
     insetImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwtntIzjpIuKW4YygP97_oytQQLHKZGp_LS0stxpS-e2ifHlTdW072m5Nn7lrk4YXIPE3i0gulIslJKYblI5O7xlJ94u761qsCzef_FfoVibC16-tKLdrW-EnaNezOb41Pbg74GbiXbxZkF2FLKu9bFALyv5XbZCwBolXJjjhhIYyObP_F55jjWzEeK2CVpZxED__z_OjKzT0tUC8Ak6bgIiHR2u6C9LkM57ZlNix7uIi8KiwJBFvP',
-    description: 'The highest peak in Dima Hasao offering stunning panoramic views of the entire hill district. Ideal for trekking, camping and nature lovers.',
+    description: 'The highest peak in Appzeto offering stunning panoramic views of the entire hill district. Ideal for trekking, camping and nature lovers.',
     aboutDetails: [
       'Silaikul Peak provides breathtaking 360-degree vistas stretching across valleys and cloud banks.',
       'A favorite hotspot for young adventurers, trekkers, and nature photographers.'

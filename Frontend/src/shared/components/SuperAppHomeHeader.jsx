@@ -104,7 +104,7 @@ const taxiTheme = getVerticalTheme('taxi');
 const VERTICALS = [
   {
     id: 'taxi',
-    name: 'Dima Hasao Taxi',
+    name: 'Appzeto Taxi',
     path: '/taxi/user',
     themeBg: taxiTheme.themeBg,
     activeTabBg: taxiTheme.activeTabBg,
@@ -112,7 +112,7 @@ const VERTICALS = [
   },
   {
     id: 'food',
-    name: 'Dima Hasao Food',
+    name: 'Appzeto Food',
     path: '/food/user',
     themeBg: foodTheme.themeBg,
     activeTabBg: foodTheme.activeTabBg,
@@ -249,7 +249,7 @@ export default function SuperAppHomeHeader({
     }
   }, [handleLocationClick, isTaxi, navigate]);
 
-  // Food <-> Taxi switching now happens from the Dima Hasao home screen, so the
+  // Food <-> Taxi switching now happens from the Appzeto home screen, so the
   // in-header vertical tabs are hidden. Flip to true to restore them.
   const SHOW_VERTICAL_TABS = false;
 

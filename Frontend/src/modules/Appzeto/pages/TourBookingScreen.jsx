@@ -201,7 +201,7 @@ export const TourBookingScreen = () => {
         amount: order.order.amount,
         currency: order.order.currency,
         order_id: order.order.id,
-        name: 'Dima Hasao Tours',
+        name: 'Appzeto Tours',
         description: pkg.title,
         themeColor: '#0a4d2b',
         prefill: { name: travelerName, email: travelerEmail, contact: travelerPhone },
@@ -412,7 +412,7 @@ export const TourBookingScreen = () => {
         {pkg.pickupPoints.length > 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-xs border border-[#E5DDC3] space-y-2.5">
             <label className="font-montserrat font-bold text-xs text-gray-900 block">
-              Pickup Point in Dima Hasao
+              Pickup Point in Appzeto
             </label>
             <select
               value={pickupPoint}

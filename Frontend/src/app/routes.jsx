@@ -10,13 +10,13 @@ import {
 } from '../shared/utils/activeModule.js'
 import AdminModulesKeepAlive, { AdminKeepAliveSlot } from './AdminModulesKeepAlive.jsx'
 import { isModuleAuthenticated } from '../shared/utils/moduleAuth.js'
-import ModuleShell from '../modules/DimaHasao/components/layout/ModuleShell.jsx'
+import ModuleShell from '../modules/Appzeto/components/layout/ModuleShell.jsx'
 
-// Lazy load the Food service module (Dima Hasao app)
+// Lazy load the Food service module (Appzeto app)
 const FoodApp = lazy(() => import('../modules/Food/routes'))
 const TaxiApp = lazy(() => import('../modules/Taxi/TaxiApp'))
-// Dima Hasao customer app (client-approved v1 UI)
-const DimaHasaoApp = lazy(() => import('../modules/DimaHasao'))
+// Appzeto customer app (client-approved v1 UI)
+const AppzetoApp = lazy(() => import('../modules/Appzeto'))
 // Hotel / property module (ported from the HomeZoo codebase): admin + partner panels
 const HotelApp = lazy(() => import('../modules/Hotel/routes'))
 const ToursApp = lazy(() => import('../modules/Tours/routes'))
@@ -51,7 +51,7 @@ const TaxiAppWrapper = () => (
   </Suspense>
 )
 
-// Consumer modules have exactly one login: the Dima Hasao (v1) screen.
+// Consumer modules have exactly one login: the Appzeto (v1) screen.
 // Anything under /food/user or /taxi/user requires that session first.
 const RequireUserAuth = ({ children }) => {
   if (!isModuleAuthenticated('user')) {
@@ -72,7 +72,7 @@ const FOOD_NAV_EXTRAS = [
 const FoodUserShell = () => (
   <RequireUserAuth>
     <ModuleShell
-      title="DIMA FOOD & DINING"
+      title="APPZETO FOOD & DINING"
       subtitle="Authentic tribal delicacies & local eateries"
       navExtras={FOOD_NAV_EXTRAS}
       navExtrasTitle="Food & Dining"
@@ -206,14 +206,14 @@ const AppRoutes = () => {
           module means a path nobody thought to gate is covered too. */}
       <ModuleAvailabilityGate>
       <Routes>
-        {/* Root lands on the client-approved Dima Hasao customer app. The
+        {/* Root lands on the client-approved Appzeto customer app. The
             Hello-Parth consumer shells stay reachable at /food/* and /taxi/*. */}
         <Route path="/" element={<Navigate to="/app" replace />} />
-        {/* Consumer login is the Dima Hasao screen only. Vendor logins keep
+        {/* Consumer login is the Appzeto screen only. Vendor logins keep
             their own paths (/food/restaurant/login, /food/delivery/login) and
             the one admin login lives at /admin/login. */}
         <Route path="/login/*" element={<Navigate to="/app/login" replace />} />
-        <Route path="/app/*" element={<Suspense fallback={<SoftFallback />}><DimaHasaoApp /></Suspense>} />
+        <Route path="/app/*" element={<Suspense fallback={<SoftFallback />}><AppzetoApp /></Suspense>} />
         {/* Gated consumer shells must precede the generic module routes. */}
         <Route path="/food/user/*" element={<FoodUserShell />} />
         <Route path="/food/*" element={<FoodAppWrapper />} />

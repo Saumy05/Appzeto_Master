@@ -17,7 +17,7 @@ import usePlatformSettings from '@/shared/hooks/usePlatformSettings';
 
 /** Static shape for the few places that read this outside a component. */
 export const SUPPORT_INFO = {
-  companyName: 'Dima Hasao Tourism',
+  companyName: 'Appzeto Tourism',
   ownerName: '',
   phone: '',
   phoneHref: '',

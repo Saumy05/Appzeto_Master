@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
  * A sellable tour package.
  *
  * The field set is driven by two things at once: the approved v1 consumer
- * screens (`Frontend/src/modules/DimaHasao/data/tourPackageData.js`), which
+ * screens (`Frontend/src/modules/Appzeto/data/tourPackageData.js`), which
  * already expect `duration`, `includes[]`, `itinerary[]` and so on, and the
  * scope of work's operator features. Keeping both in one schema is what lets
  * the existing screens run on real data without being redesigned.

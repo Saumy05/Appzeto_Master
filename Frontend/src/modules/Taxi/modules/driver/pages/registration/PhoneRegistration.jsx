@@ -32,7 +32,7 @@ const errorMessage = (error) =>
 export default function PhoneRegistration() {
   const navigate = useNavigate();
   const location = useLocation();
-  const brand = usePlatformSettings({ brandName: 'Dima Hasao' });
+  const brand = usePlatformSettings({ brandName: 'Appzeto' });
 
   const stored = getStoredDriverRegistrationSession();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -137,7 +137,7 @@ export default function PhoneRegistration() {
         />
 
         <h1 className="mt-6 text-[30px] font-black leading-tight tracking-[-0.02em] text-[var(--dh-text)]">
-          Drive with {brand.brandName || 'Dima Hasao'}
+          Drive with {brand.brandName || 'Appzeto'}
         </h1>
         <p className="mt-2 max-w-[32ch] text-[14px] font-medium leading-relaxed text-[var(--dh-muted)]">
           Enter your mobile number. We will send a code to confirm it is you.

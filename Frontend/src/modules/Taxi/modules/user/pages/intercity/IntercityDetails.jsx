@@ -11,7 +11,7 @@ import { toHistorySafeState } from '../../../../shared/utils/historyState';
 /*
  * Seeds the map and biases place search when a trip names a city. It held the
  * previous product's Madhya Pradesh routes; these are the towns an outstation
- * trip from Dima Hasao actually starts or ends in.
+ * trip from Appzeto actually starts or ends in.
  */
 const CITY_CENTERS = {
   Haflong: { lat: 25.1667, lng: 93.0167 },

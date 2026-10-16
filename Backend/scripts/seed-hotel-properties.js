@@ -1,5 +1,5 @@
 /**
- * Seed approved, live hotel properties (with room types) for Dima Hasao.
+ * Seed approved, live hotel properties (with room types) for Appzeto.
  *
  * The consumer hotel screens read the real backend, so an empty database looks
  * identical to a broken integration. This gives the customer journey something
@@ -32,7 +32,7 @@ const PROPERTIES = [
     propertyType: 'resort',
     description:
       'Perched on the highest ridge of Haflong with panoramic views of the mist-covered Borail range. Ethnic fine dining, heated showers and tranquil gardens.',
-    address: { country: 'India', state: 'Assam', city: 'Haflong', area: 'Upper Bagetar', fullAddress: 'Near Circuit House, Upper Bagetar, Haflong, Dima Hasao, Assam 788819', pincode: '788819' },
+    address: { country: 'India', state: 'Assam', city: 'Haflong', area: 'Upper Bagetar', fullAddress: 'Near Circuit House, Upper Bagetar, Haflong, Appzeto, Assam 788819', pincode: '788819' },
     location: { type: 'Point', coordinates: [93.0186, 25.1644] },
     coverImage: IMG.resort,
     propertyImages: [IMG.resort, IMG.homestay, IMG.room],
@@ -54,7 +54,7 @@ const PROPERTIES = [
     propertyType: 'homestay',
     description:
       'A warm family-run homestay in Jatinga village serving authentic Dimasa meals, a short walk from the famous bird-watching point.',
-    address: { country: 'India', state: 'Assam', city: 'Jatinga', area: 'Jatinga Village', fullAddress: 'Jatinga Village Road, Jatinga, Dima Hasao, Assam 788819', pincode: '788819' },
+    address: { country: 'India', state: 'Assam', city: 'Jatinga', area: 'Jatinga Village', fullAddress: 'Jatinga Village Road, Jatinga, Appzeto, Assam 788819', pincode: '788819' },
     location: { type: 'Point', coordinates: [93.0119, 25.0997] },
     coverImage: IMG.homestay,
     propertyImages: [IMG.homestay, IMG.room],
@@ -74,7 +74,7 @@ const PROPERTIES = [
     propertyType: 'hotel',
     description:
       'Comfortable riverside rooms in Maibang, convenient for the railway station and the historic stone house ruins.',
-    address: { country: 'India', state: 'Assam', city: 'Maibang', area: 'Station Road', fullAddress: 'Station Road, Maibang, Dima Hasao, Assam 788831', pincode: '788831' },
+    address: { country: 'India', state: 'Assam', city: 'Maibang', area: 'Station Road', fullAddress: 'Station Road, Maibang, Appzeto, Assam 788831', pincode: '788831' },
     location: { type: 'Point', coordinates: [93.1284, 25.3021] },
     coverImage: IMG.hotel,
     propertyImages: [IMG.hotel, IMG.room],
@@ -99,9 +99,9 @@ const run = async () => {
   let partner = await Partner.findOne({ phone: SEED_PARTNER_PHONE });
   if (!partner) {
     partner = await Partner.create({
-      name: 'Dima Hasao Stays (Seed)',
+      name: 'Appzeto Stays (Seed)',
       phone: SEED_PARTNER_PHONE,
-      email: 'seed.partner@dimahasao.local',
+      email: 'seed.partner@appzeto.local',
       password: await bcrypt.hash(`seed:${Date.now()}`, 10),
       role: 'partner',
       isPartner: true,

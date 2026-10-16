@@ -16,7 +16,7 @@ import hotelRoutes from './hotelRoutes.js';
 import categoryRoutes from './categoryRoutes.js';
 import supportRoutes from './supportRoutes.js';
 
-// Hotel / property module (ported from Dima Hasao). Sub-paths mirror the original
+// Hotel / property module (ported from Appzeto). Sub-paths mirror the original
 // service so the partner panel and admin screens keep working unchanged; the
 // whole tree is mounted under /v1/hotel by the root router.
 export const hotelRouter = Router();
