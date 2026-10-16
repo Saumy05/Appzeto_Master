@@ -1,11 +1,20 @@
 {
-    "routes": [
-        {
-            "handle": "filesystem"
-        },
-        {
-            "src": "/.*",
-            "dest": "/index.html"
-        }
-    ]
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://appzeto-4adw.onrender.com/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://appzeto-4adw.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/socket.io/:path*",
+      "destination": "https://appzeto-4adw.onrender.com/socket.io/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
