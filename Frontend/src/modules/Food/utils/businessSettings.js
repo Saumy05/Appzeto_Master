@@ -13,7 +13,16 @@ const SETTINGS_KEY = 'helloparth_business_settings';
 let cachedSettings = (() => {
   try {
     const saved = localStorage.getItem(SETTINGS_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    if (parsed && typeof parsed === 'object') {
+      if (/dima/i.test(parsed.companyName || '')) {
+        parsed.companyName = 'Appzeto';
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed)); } catch (e) {}
+      }
+      return parsed;
+    }
+    return null;
   } catch (e) {
     return null;
   }
@@ -110,7 +119,8 @@ export const updateFavicon = (url) => {
  */
 export const updateTitle = (companyName) => {
   if (typeof document !== 'undefined') {
-    document.title = (companyName && companyName !== "Foodelo") ? companyName : "Appzeto Food";
+    const isInvalid = !companyName || companyName === "Foodelo" || /dima/i.test(companyName);
+    document.title = isInvalid ? "Appzeto" : companyName;
   }
 };
 

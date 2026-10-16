@@ -37,7 +37,7 @@ const run = async () => {
         : '';
 
     const candidate = {
-        brandName: asText(food?.companyName) || asText(taxi?.company_name) || 'Appzeto Tourism',
+        brandName: asText(food?.companyName) || asText(taxi?.company_name) || 'Appzeto',
         supportEmail: asText(food?.email) || asText(taxi?.company_email),
         supportPhone: phone || asText(taxi?.company_phone),
         address: asText(food?.address) || asText(taxi?.company_address),

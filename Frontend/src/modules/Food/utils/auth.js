@@ -409,20 +409,31 @@ export function setUnifiedAuthData(data) {
     setAuthData("user", foodToken, foodUser, foodRefreshToken);
   }
 
+  const cleanUser = (u) => {
+    if (!u || typeof u !== 'object') return u;
+    if (u.name && /dima/i.test(u.name)) {
+      return { ...u, name: u.name.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto') };
+    }
+    return u;
+  };
+
+  const cleanFoodUser = cleanUser(foodUser);
+  const cleanTaxiUser = cleanUser(taxiAuth?.user);
+
   const taxiAuth = data.taxiAuth;
-  if (taxiAuth && taxiAuth.token && taxiAuth.user) {
+  if (taxiAuth && taxiAuth.token && cleanTaxiUser) {
     localStorage.setItem("userToken", taxiAuth.token);
     localStorage.setItem("token", taxiAuth.token);
-    localStorage.setItem("userInfo", JSON.stringify(taxiAuth.user));
+    localStorage.setItem("userInfo", JSON.stringify(cleanTaxiUser));
     localStorage.setItem("role", "user");
     localStorage.setItem("chatRole", "user");
     return;
   }
 
-  if (foodToken && foodUser) {
+  if (foodToken && cleanFoodUser) {
     localStorage.setItem("userToken", foodToken);
     localStorage.setItem("token", foodToken);
-    localStorage.setItem("userInfo", JSON.stringify(foodUser));
+    localStorage.setItem("userInfo", JSON.stringify(cleanFoodUser));
     localStorage.setItem("role", "user");
     localStorage.setItem("chatRole", "user");
   }

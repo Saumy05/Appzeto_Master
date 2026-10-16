@@ -154,8 +154,11 @@ const Profile = () => {
           4.9,
         );
         
+        const rawName = user.name || stored?.name || 'User';
+        const cleanName = rawName.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto');
+
         setProfile({
-          name: user.name || stored?.name || 'User',
+          name: cleanName,
           phone: user.phone || stored?.phone || '',
           profileImage: user.profileImage || user.profile_image || stored?.profileImage || '',
           stats: {

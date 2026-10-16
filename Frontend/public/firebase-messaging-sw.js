@@ -142,7 +142,7 @@ async function loadFirebaseWebConfig() {
 
       self.registration.showNotification(title, {
         body,
-        icon: "/hello-parth-logo.png",
+        icon: "/logo.png",
         image,
         tag: notificationKey,
         renotify: false,

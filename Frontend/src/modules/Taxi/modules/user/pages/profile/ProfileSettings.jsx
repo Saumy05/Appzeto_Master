@@ -40,7 +40,8 @@ const ProfileSettings = () => {
     } catch {
       stored = {};
     }
-    if (stored?.name) setName(stored.name);
+    const sanitize = (val) => String(val || '').replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto');
+    if (stored?.name) setName(sanitize(stored.name));
     if (stored?.email) setEmail(stored.email);
     if (stored?.phone) setPhone(stored.phone);
     if (stored?.profileImage) setProfileImage(stored.profileImage);
@@ -49,7 +50,7 @@ const ProfileSettings = () => {
       try {
         const response = await userAuthService.getCurrentUser();
         const user = response?.data?.user || {};
-        setName(user.name || stored?.name || '');
+        setName(sanitize(user.name || stored?.name || ''));
         setEmail(user.email || stored?.email || '');
         setPhone(user.phone || stored?.phone || '');
         setProfileImage(user.profileImage || stored?.profileImage || '');

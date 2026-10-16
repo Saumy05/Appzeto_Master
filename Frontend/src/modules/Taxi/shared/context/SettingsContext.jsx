@@ -23,7 +23,7 @@ export const normalizeAssetUrl = (url = '') => {
 const DEFAULT_SETTINGS_CONTEXT = {
   settings: {
     general: {
-      app_name: 'Appzeto Taxi',
+      app_name: 'Appzeto',
       logo: '',
       favicon: '',
     },
@@ -181,6 +181,11 @@ const readCachedSettings = () => {
       return null;
     }
 
+    if (/dima/i.test(parsed.general?.app_name || '')) {
+      parsed.general = { ...parsed.general, app_name: 'Appzeto' };
+      try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(parsed)); } catch {}
+    }
+
     return buildSettingsState(parsed);
   } catch {
     return null;
@@ -288,7 +293,10 @@ export const SettingsProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const appName = settings.general?.app_name || 'Appzeto Taxi';
+    let appName = settings.general?.app_name || 'Appzeto';
+    if (!appName || /dima/i.test(appName)) {
+      appName = 'Appzeto';
+    }
     document.title = appName;
 
     const favicon = settings.general?.favicon || settings.customization?.favicon;

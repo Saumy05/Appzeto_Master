@@ -22,13 +22,28 @@ export const BookingProvider = ({ children }) => {
   // (set by setUnifiedAuthData on login) before falling back to the local record.
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('appzeto_user') || sessionStorage.getItem('dima_user');
-      if (saved) return JSON.parse(saved);
+      const raw = sessionStorage.getItem('appzeto_user') || sessionStorage.getItem('dima_user');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') {
+          if (saved.name && /dima/i.test(saved.name)) {
+            saved.name = saved.name.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto');
+            try { sessionStorage.setItem('appzeto_user', JSON.stringify(saved)); } catch {}
+          }
+          return saved;
+        }
+      }
 
       if (isModuleAuthenticated('user')) {
         const info = JSON.parse(localStorage.getItem('userInfo') || '{}');
+        let name = info.name || 'Appzeto Explorer';
+        if (/dima/i.test(name)) {
+          name = name.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto');
+          info.name = name;
+          try { localStorage.setItem('userInfo', JSON.stringify(info)); } catch {}
+        }
         return {
-          name: info.name || 'Explorer',
+          name,
           phone: info.phone || '',
           isLoggedIn: true
         };
@@ -38,6 +53,36 @@ export const BookingProvider = ({ children }) => {
     }
     return { name: 'Guest', phone: '', isLoggedIn: false };
   });
+
+  // Ensure any cached legacy session names are automatically scrubbed on mount
+  useEffect(() => {
+    setUser((prev) => {
+      if (prev?.name && /dima/i.test(prev.name)) {
+        const next = {
+          ...prev,
+          name: prev.name.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto')
+        };
+        try {
+          sessionStorage.setItem('appzeto_user', JSON.stringify(next));
+          sessionStorage.removeItem('dima_user');
+        } catch {}
+        return next;
+      }
+      return prev;
+    });
+
+    try {
+      const rawInfo = localStorage.getItem('userInfo');
+      if (rawInfo && /dima/i.test(rawInfo)) {
+        const info = JSON.parse(rawInfo);
+        if (info.name) {
+          info.name = info.name.replace(/dima\s*hasao/gi, 'Appzeto').replace(/dima/gi, 'Appzeto');
+          localStorage.setItem('userInfo', JSON.stringify(info));
+        }
+      }
+      sessionStorage.removeItem('dima_user');
+    } catch {}
+  }, []);
 
   // Selected Trip Details
   const [selectedPlaceId, setSelectedPlaceId] = useState('1');

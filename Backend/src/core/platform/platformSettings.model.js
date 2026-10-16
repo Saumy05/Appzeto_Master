@@ -22,7 +22,7 @@ const platformSettingsSchema = new mongoose.Schema(
         /** Guarantees a single row even if two writers race. */
         key: { type: String, default: 'platform', unique: true, immutable: true },
 
-        brandName: { type: String, default: 'Appzeto Tourism', trim: true },
+        brandName: { type: String, default: 'Appzeto', trim: true },
         tagline: { type: String, default: '', trim: true },
 
         /** Left blank to fall back to the bundled crest in the frontend. */

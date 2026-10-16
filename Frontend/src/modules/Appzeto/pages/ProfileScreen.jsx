@@ -33,7 +33,10 @@ export const ProfileScreen = () => {
   const { user, login, logout, favorites, bookings, showToast } = useBooking();
   const [selectedLang, setSelectedLang] = useState('English');
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(user.name);
+  const cleanName = (user?.name || 'Appzeto Explorer')
+    .replace(/dima\s*hasao/gi, 'Appzeto')
+    .replace(/dima/gi, 'Appzeto');
+  const [editName, setEditName] = useState(cleanName);
   const [editPhone, setEditPhone] = useState(user.phone || '+91 98765 43210');
   const [vegChoice, setVegChoice] = useState(readVegChoice);
   const navigate = useNavigate();
@@ -125,7 +128,7 @@ export const ProfileScreen = () => {
               </div>
 
               <div className="min-w-0">
-                <h3 className="font-bold text-base text-amber-300 truncate">{user.name}</h3>
+                <h3 className="font-bold text-base text-amber-300 truncate">{cleanName}</h3>
                 <p className="text-xs text-emerald-200 truncate mt-0.5">{user.phone || '+91 98765 43210'}</p>
                 <span className="inline-block mt-1.5 bg-amber-400/20 text-amber-300 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-amber-400/30">
                   <i className="fa-solid fa-certificate text-[9px] mr-1 text-amber-400"></i>

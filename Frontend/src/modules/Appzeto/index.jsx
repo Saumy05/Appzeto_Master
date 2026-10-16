@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BookingProvider } from './context/BookingContext';
 import { MobileFrame } from './components/layout/MobileFrame';
 import { UserRoutes } from './routes/userRoutes';
@@ -16,6 +17,10 @@ import './appzeto.css';
 // the top). The old ScrollToTop reset every container on every route change,
 // which would fight that.
 export default function AppzetoApp() {
+  useEffect(() => {
+    document.title = 'Appzeto';
+  }, []);
+
   return (
     <div className="dh-app">
       <BookingProvider>
